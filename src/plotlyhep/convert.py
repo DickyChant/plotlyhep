@@ -99,9 +99,16 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
         layout[xkey] = axis_dict(ax.xaxis, *ax.get_xlim(), [x0, x1], lw)
         layout[ykey] = axis_dict(ax.yaxis, *ax.get_ylim(), [y0, y1], lw)
         # ---- artists
+        # errorbar() keeps its legend label on the container, not on the marker line
+        from matplotlib.container import ErrorbarContainer
+        relabel = {}
+        for c in getattr(ax, "containers", []):
+            if isinstance(c, ErrorbarContainer) and c[0] is not None and not str(c.get_label()).startswith("_"):
+                relabel[id(c[0])] = c.get_label()
         for ln in ax.lines:
             x, y = ln.get_xdata(), ln.get_ydata()
             if len(x) == 0: continue
+            if id(ln) in relabel: ln.set_label(relabel[id(ln)])
             ds = ln.get_drawstyle(); shape = {"steps-post": "hv", "steps-pre": "vh", "steps-mid": "hvh", "steps": "vh"}.get(ds, "linear")
             ls = _DASH.get(ln.get_linestyle(), "solid"); mk = _MARK.get(str(ln.get_marker()), None)
             has_line = ln.get_linestyle() not in ("None", "none", "", " ")
