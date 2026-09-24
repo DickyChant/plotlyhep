@@ -85,6 +85,59 @@ W, H = php.figsize_px("ATLAS")            # 800 x 600: the ATLAS figure size, em
 fig.update_layout(width=W, height=H)
 hzz = embed(fig, "fig-hzz4l", editable=False, persist=False, inherit_template=False, width=f"{W}px", height=f"{H}px")
 
+
+# ---------------------------------------------------------------- CMS dimuon spectrum
+DM = json.load(open(os.path.join(HERE, "data", "dimuon.json")))
+DE = np.asarray(DM["edges"]); dctr = np.sqrt(DE[1:] * DE[:-1]); dsets = list(DM["datasets"].keys())
+def near_res(lo, hi):
+    return [r["name"] for r in DM["resonances"] if lo <= r["mass"] < hi or abs(r["mass"] - np.sqrt(lo * hi)) < 0.02 * r["mass"]]
+def dimuon_traces(key, sign):
+    d = DM["datasets"][key]; y = np.asarray(d[sign], float)
+    yy = np.where(y > 0, y, np.nan)                                     # log axis: empty bins break the line
+    x = np.concatenate([DE[:1], DE, DE[-1:]]); ys = np.concatenate([[np.nan], yy, [yy[-1], np.nan]])
+    hover = [f"m<sub>μμ</sub> ∈ [{DE[i]:.3f}, {DE[i+1]:.3f}) GeV<br><b>{int(y[i])}</b> {'opposite' if sign=='os' else 'same'}-sign pairs"
+             + (f"<br>near the {', '.join(near_res(DE[i], DE[i+1]))}" if near_res(DE[i], DE[i+1]) else "") for i in range(len(dctr))]
+    step = go.Scatter(x=x, y=ys, mode="lines", line=dict(shape="hv", width=pt2px(1.2), color="#1a4480" if sign == "os" else "#9c9ca1"),
+                      name=f"{key} · {'opposite' if sign=='os' else 'same'}-sign", hoverinfo="skip", showlegend=True)
+    carrier = go.Scatter(x=dctr, y=yy, mode="markers", marker=dict(size=8, opacity=0.02, color="#1a4480"), showlegend=False,
+                         customdata=hover, hovertemplate="%{customdata}<extra></extra>")
+    return step, carrier
+key0 = "2012" if "2012" in dsets else dsets[0]
+dfig = php.figure("CMS")
+for t in dimuon_traces(key0, "os"): dfig.add_trace(t)
+peak = lambda key, m: float(np.asarray(DM["datasets"][key]["os"])[np.searchsorted(DE, m) - 1] or 1)
+for r in DM["resonances"]:
+    ymax = peak(key0, r["mass"])
+    if ymax < 2: continue                                              # label only peaks this dataset can show
+    dfig.add_annotation(x=np.log10(r["mass"]), y=np.log10(max(ymax, 1)) + 0.18, xref="x", yref="y", text=r["name"], showarrow=True,
+                        ax=0, ay=-34, arrowhead=0, arrowwidth=1, arrowcolor="#5c636e", font=dict(size=16, color="#191c20"),
+                        hovertext=f"<b>{r['name']}</b> — m = {r['mass']:g} GeV, Γ = {r['width']}<br>{r['what']}" + (f"<br>{r['note']}" if r["note"] else ""),
+                        hoverlabel=dict(bgcolor="white", font=dict(size=13)))
+dfig.update_layout(width=900, height=600, margin=dict(l=112, r=30, t=100, b=84), showlegend=True,
+                   legend=dict(x=0.98, y=0.98, xanchor="right", yanchor="top"), hovermode="closest",
+                   hoverlabel=dict(bgcolor="white", font=dict(size=13, family="Helvetica, Arial"), align="left"),
+                   xaxis=dict(type="log", range=[np.log10(0.25), np.log10(300)], tickvals=[0.3, 0.5, 1, 2, 3, 5, 10, 20, 30, 50, 100, 200],
+                              ticktext=["0.3", "0.5", "1", "2", "3", "5", "10", "20", "30", "50", "100", "200"], minor=dict(ticks="")),
+                   yaxis=dict(type="log", rangemode="normal"))
+php.set_xlabel(dfig, "m<sub>μμ</sub> [GeV]"); php.set_ylabel(dfig, "Events / bin", ticklabel_chars=3)
+php.cms.label(dfig, "Open Data", data=True, rlabel=f"{DM['datasets'][key0]['sqrt_s_TeV']} TeV", loc=0)
+def dm_restyle(key, sign):
+    a, b = dimuon_traces(key, sign); return {"y": [a.y, b.y], "customdata": [None, b.customdata], "name": [a.name, b.name], "line.color": [a.line.color, None]}
+menus = [dict(type="buttons", direction="right", x=0.0, y=1.19, xanchor="left", yanchor="top", showactive=True, bgcolor="white", font=dict(size=13),
+              buttons=[dict(label="opposite-sign", method="restyle", args=[dm_restyle(key0, "os")]), dict(label="same-sign", method="restyle", args=[dm_restyle(key0, "ss")])]),
+         dict(type="buttons", direction="right", x=0.36, y=1.19, xanchor="left", yanchor="top", showactive=True, bgcolor="white", font=dict(size=13),
+              buttons=[dict(label="full", method="relayout", args=[{"xaxis.range": [np.log10(0.25), np.log10(300)]}]),
+                       dict(label="J/ψ", method="relayout", args=[{"xaxis.range": [np.log10(2.6), np.log10(4.4)]}]),
+                       dict(label="Υ", method="relayout", args=[{"xaxis.range": [np.log10(8.6), np.log10(11.4)]}]),
+                       dict(label="Z", method="relayout", args=[{"xaxis.range": [np.log10(60), np.log10(130)]}])])]
+if len(dsets) > 1:
+    menus.append(dict(type="dropdown", x=0.76, y=1.19, xanchor="left", yanchor="top", showactive=True, bgcolor="white", font=dict(size=13),
+                      buttons=[dict(label=f"{k}: {DM['datasets'][k]['n_events']/1e6:.1f} M events" if DM['datasets'][k]['n_events'] > 1e6 else f"{k}: {DM['datasets'][k]['n_events']//1000}k events",
+                                    method="restyle", args=[dm_restyle(k, "os")]) for k in sorted(dsets, reverse=True)]))
+dfig.update_layout(updatemenus=menus)
+dimuon = embed(dfig, "fig-dimuon", editable=False, persist=False, inherit_template=False, width="900px", height="600px")
+dm_desc = " · ".join(f"{k}: {DM['datasets'][k]['description']}" for k in sorted(dsets, reverse=True))
+
 n_sel = {k: s["selected_raw"] for k, s in D["samples"].items()}
 page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plotlyhep — gallery</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -110,6 +163,12 @@ page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plo
   <div class="fig">{hzz}</div>
   <p class="try">try: hover a stack segment · hover a data point (observed vs S and B) · click a legend entry to hide it, double-click to isolate it · channel dropdown · log axis · signal × 10 · drag to zoom, double-click to reset</p>
   <p class="small">Selected events: data {D['data']['selected']} · MC after selection: {', '.join(f'{k} {v}' for k, v in n_sel.items())}. Reduced once by <code>docs/make_data.py</code> to a {os.path.getsize(os.path.join(HERE,'data','hzz4l.json'))//1024} kB JSON; this page is built from that file alone.</p>
+</section>
+<section id="dimuon">
+  <h2>the dimuon spectrum — CMS Open Data</h2>
+  <p>Every opposite-sign muon pair's invariant mass on a log–log axis: three decades of QCD and electroweak physics in one histogram, from the light mesons through the charmonium and bottomonium families to the Z. Hover a peak's label to learn what it is; hover a bin for its count; zoom to a family. {dm_desc}.</p>
+  <div class="fig">{dimuon}</div>
+  <p class="try">try: hover the J/ψ or Υ labels · opposite- vs same-sign (no resonances in same-sign pairs: the peaks are physics, not detector artefacts) · zoom presets · drag a region · double-click to reset</p>
 </section>
 <section id="use">
   <h2>use it</h2>

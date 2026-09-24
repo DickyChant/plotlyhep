@@ -1,6 +1,6 @@
 # plotlyhep — mplhep, mirrored for Plotly
 
-**Gallery:** https://dickychant.github.io/plotlyhep/ — H → ZZ* → 4ℓ on ATLAS Open Data, every stacked process explaining itself on hover.
+**Gallery:** https://dickychant.github.io/plotlyhep/ — H → ZZ* → 4ℓ on ATLAS Open Data with every stacked process explaining itself on hover, and the CMS dimuon spectrum (61.5 M events from Run2012B+C) with every resonance explaining itself on hover.
 
 [mplhep](https://github.com/scikit-hep/mplhep) gives matplotlib the CMS / ATLAS
 look. `plotlyhep` gives Plotly the same look — and proves it with pixels.
