@@ -83,7 +83,7 @@ fig.update_layout(margin=dict(l=118, r=30, t=100, b=84), updatemenus=[
 ])
 W, H = php.figsize_px("ATLAS")            # 800 x 600: the ATLAS figure size, embedded at native pixels
 fig.update_layout(width=W, height=H)
-hzz = embed(fig, "fig-hzz4l", editable=False, persist=False, inherit_template=False, width=f"{W}px", height=f"{H}px")
+hzz = embed(fig, "fig-hzz4l", editable=True, persist=True, inherit_template=False, width=f"{W}px", height=f"{H}px")
 
 
 # ---------------------------------------------------------------- CMS dimuon spectrum
@@ -135,7 +135,7 @@ if len(dsets) > 1:
                       buttons=[dict(label=f"{k}: {DM['datasets'][k]['n_events']/1e6:.1f} M events" if DM['datasets'][k]['n_events'] > 1e6 else f"{k}: {DM['datasets'][k]['n_events']//1000}k events",
                                     method="restyle", args=[dm_restyle(k, "os")]) for k in sorted(dsets, reverse=True)]))
 dfig.update_layout(updatemenus=menus)
-dimuon = embed(dfig, "fig-dimuon", editable=False, persist=False, inherit_template=False, width="900px", height="600px")
+dimuon = embed(dfig, "fig-dimuon", editable=True, persist=True, inherit_template=False, width="900px", height="600px")
 dm_desc = " · ".join(f"{k}: {DM['datasets'][k]['description']}" for k in sorted(dsets, reverse=True))
 
 n_sel = {k: s["selected_raw"] for k, s in D["samples"].items()}
@@ -161,14 +161,14 @@ page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plo
   <h2>H → ZZ* → 4ℓ — ATLAS Open Data, 13 TeV, {D['lumi_fb']:g} fb⁻¹</h2>
   <p>The four-lepton invariant mass after the standard selection ({D['selection']}), Higgs signal stacked on the ZZ* and reducible backgrounds, data with Poisson errors. Built from <a href="https://opendata.cern.ch/record/15005">CERN Open Data record 15005</a> with the normalisation of the ATLAS outreach framework; the same selection as ROOT's <code>df106_HiggsToFourLeptons</code> tutorial.</p>
   <div class="fig">{hzz}</div>
-  <p class="try">try: hover a stack segment · hover a data point (observed vs S and B) · click a legend entry to hide it, double-click to isolate it · channel dropdown · log axis · signal × 10 · drag to zoom, double-click to reset</p>
+  <p class="try">try: hover a stack segment · hover a data point (observed vs S and B) · channel dropdown · log axis · signal × 10 · click a legend entry to hide it. The figure is frozen; press <b>edit</b> (top right) to zoom, pan, drag the legend or move labels — your edits stay in this browser; <b>reset</b> discards them</p>
   <p class="small">Selected events: data {D['data']['selected']} · MC after selection: {', '.join(f'{k} {v}' for k, v in n_sel.items())}. Reduced once by <code>docs/make_data.py</code> to a {os.path.getsize(os.path.join(HERE,'data','hzz4l.json'))//1024} kB JSON; this page is built from that file alone.</p>
 </section>
 <section id="dimuon">
   <h2>the dimuon spectrum — CMS Open Data</h2>
   <p>Every opposite-sign muon pair's invariant mass on a log–log axis: three decades of QCD and electroweak physics in one histogram, from the light mesons through the charmonium and bottomonium families to the Z. Hover a peak's label to learn what it is; hover a bin for its count; zoom to a family. {dm_desc}.</p>
   <div class="fig">{dimuon}</div>
-  <p class="try">try: hover the J/ψ or Υ labels · opposite- vs same-sign (no resonances in same-sign pairs: the peaks are physics, not detector artefacts) · zoom presets · drag a region · double-click to reset</p>
+  <p class="try">try: hover the J/ψ or Υ labels · opposite- vs same-sign (no resonances in same-sign pairs: the peaks are physics, not detector artefacts) · zoom presets · frozen until you press <b>edit</b>, then drag to zoom or move the labels</p>
 </section>
 <section id="use">
   <h2>use it</h2>
@@ -180,7 +180,7 @@ php.set_xlabel(fig, "m&lt;sub&gt;4ℓ&lt;/sub&gt; [GeV]"); php.set_ylabel(fig, "
 
 # in an HTML deck: once per page, then per figure
 head  += php.html.script_tag("ATLAS") + php.html.SLIDE_CSS
-slide += php.html.embed(fig, "plot-s12", editable=True)      # hover, draggable annotations, edits persisted</pre>
+slide += php.html.embed(fig, "plot-s12")                     # frozen: hover + buttons only; the "edit" chip unlocks dragging, zoom, persisted edits</pre>
   <p class="small">Fidelity to mplhep is measured, not asserted: every commit renders the same figures through mplhep and plotlyhep on a 1000 × 1000 grid and diffs the pixels — see the <a href="https://github.com/DickyChant/plotlyhep/actions">pixel-diff workflow</a> and the README table.</p>
 </section>
 </main></body></html>"""
