@@ -45,8 +45,8 @@ Current state (TeX Gyre Heros available to both renderers):
 | empty axes + CMS label | 5.1 | 2.6 % | 0.936 |
 | step histograms + data + legend | 7.3 | 4.2 % | 0.900 |
 | filled histogram, label inside (`loc=2`) | 5.9 | 3.1 % | 0.921 |
-| `from_mpl` of the histogram figure | 7.7 | 4.1 % | 0.906 |
-| `from_mpl` → `to_mpl` round trip | 0.17 | 0.09 % | 0.997 |
+| `from_mpl` of the histogram figure | 7.9 | 4.2 % | 0.905 |
+| `from_mpl` → `to_mpl` round trip | 0.04 | 0.02 % | 0.999 |
 
 What the remaining difference is: sub-pixel text rasterisation (two different
 text engines), Plotly's slightly heavier line antialiasing, and legend entry
