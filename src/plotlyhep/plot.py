@@ -134,6 +134,7 @@ def histplot(
 
 
 def hist2dplot(fig: go.Figure, H, xbins, ybins, *, colorscale="Viridis", cbar: bool = True, **kw):
+    """2D histogram as a heatmap with bin-edge hover, like mplhep.hist2dplot. H is indexed [x, y] as numpy.histogram2d returns it."""
     H = np.asarray(H, dtype=float)
     xe, ye = np.asarray(xbins, float), np.asarray(ybins, float)
     xc, yc = 0.5 * (xe[1:] + xe[:-1]), 0.5 * (ye[1:] + ye[:-1])

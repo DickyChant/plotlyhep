@@ -1,6 +1,6 @@
 # plotlyhep — mplhep, mirrored for Plotly
 
-**Gallery:** https://dickychant.github.io/plotlyhep/ (and its **editor** at `/editor/`: load any figure or your own Plotly JSON, drag things, export JSON / PNG / SVG or the exact `update_layout` edits) — H → ZZ* → 4ℓ on ATLAS Open Data with every stacked process explaining itself on hover, and the CMS dimuon spectrum (61.5 M events from Run2012B+C) with every resonance explaining itself on hover.
+**Documentation:** https://dickychant.github.io/plotlyhep/ · **Gallery:** https://dickychant.github.io/plotlyhep/gallery/ (ATLAS and CMS Open Data figures with hover that explains each process) · **Editor:** https://dickychant.github.io/plotlyhep/gallery/editor/ (load any figure or your own Plotly JSON, drag things around, export JSON / PNG / SVG or the exact `update_layout` edits).
 
 [mplhep](https://github.com/scikit-hep/mplhep) gives matplotlib the CMS / ATLAS
 look. `plotlyhep` gives Plotly the same look — and proves it with pixels.
@@ -90,10 +90,20 @@ column with empty bins drawn at the axis minimum.
 
 ## Install
 
+Not on PyPI; install from git, a tag, or the tarball / wheel that CI attaches to every release:
+
 ```bash
-pip install -e ".[test]"          # pins Plotly 5 + kaleido 0.2.1 (bundled Chromium) for the harness; the library itself runs on Plotly 5 or 6
-sudo apt-get install fonts-texgyre  # or any way of giving Chromium the TeX Gyre Heros face mplhep uses
-pytest                            # 77 tests, ~7 s
+pip install "plotlyhep @ git+https://github.com/DickyChant/plotlyhep"            # main
+pip install "plotlyhep @ git+https://github.com/DickyChant/plotlyhep@v0.1.0"     # a tag
+pip install https://github.com/DickyChant/plotlyhep/releases/download/v0.1.0/plotlyhep-0.1.0-py3-none-any.whl
+```
+
+Runtime dependencies are `plotly` and `numpy` only. For a development checkout:
+
+```bash
+pip install -e ".[dev]"           # test extra pins Plotly 5 + kaleido 0.2.1 (bundled Chromium); the library itself runs on Plotly 5 or 6
+pytest                            # 79 tests, ~6 s
+mkdocs serve                      # the documentation site
 ```
 
 ## Tests

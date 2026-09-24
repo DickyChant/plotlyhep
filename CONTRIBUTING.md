@@ -5,7 +5,7 @@ plotlyhep follows the [scikit-hep developer guidelines](https://scikit-hep.org/d
 ```bash
 pip install -e ".[dev]"
 pre-commit install            # ruff on every commit
-pytest                        # the whole suite (needs kaleido 0.2.1, which bundles Chromium)
+pytest                        # 79 tests (needs kaleido 0.2.1, which bundles Chromium)
 pytest --regen-baselines      # after an intentional visual change: regenerate tests/baseline and commit it
 nox                           # lint (ruff, ruff format, mypy, codespell) + tests, what CI runs
 pipx run 'repo-review[cli]' --package sp-repo-review .   # scikit-hep conformance report

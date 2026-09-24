@@ -37,6 +37,7 @@ def mathtext_to_html(s: str) -> str:
 
 
 def html_to_mathtext(s: str) -> str:
+    """Inverse of mathtext_to_html: <sub>/<sup> back to $_{}$ / $^{}$, other tags dropped."""
     s = re.sub(r"<sub>([^<]*)</sub>", r"$_{\1}$", s)
     s = re.sub(r"<sup>([^<]*)</sup>", r"$^{\1}$", s)
     s = re.sub(r"</?[bi]>", "", s)
@@ -72,6 +73,9 @@ _MARK = {
 
 # ----------------------------------------------------------------- from_mpl
 def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
+    """Convert a matplotlib figure to a Plotly figure by walking the drawn artists: lines, steps,
+    error bars, patches, collections, images, texts, annotations, legend and axes geometry.
+    dpi defaults to the figure's; sizes convert at that dpi so the result matches pixel for pixel."""
     import matplotlib
     from matplotlib.collections import LineCollection, PathCollection, PolyCollection, QuadMesh
     from matplotlib.image import AxesImage
@@ -528,6 +532,8 @@ def _mpl_color(c):
 
 # ----------------------------------------------------------------- to_mpl
 def to_mpl(pfig: go.Figure, *, dpi: float = 100.0):
+    """Convert a Plotly figure back to matplotlib: traces become lines / steps / bars / error bars /
+    images, annotations become texts or arrows, axes keep their ranges, ticks and labels."""
     import matplotlib.pyplot as plt
 
     L = pfig.layout

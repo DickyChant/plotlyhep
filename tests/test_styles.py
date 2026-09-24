@@ -93,3 +93,18 @@ def test_style_root():
     fig.update_xaxes(range=[0, 10])
     fig.update_yaxes(range=[0, 10])
     return fig
+
+
+def test_figure_scale_keeps_proportions():
+    """a 500 px CMS figure has half the fonts, ticks and margins of the 1000 px one"""
+    full = php.figure("CMS")
+    half = php.figure("CMS", width=500, height=500)
+    assert (half.layout.width, half.layout.height) == (500, 500)
+    tf, th = full.layout.template.layout, half.layout.template.layout
+    assert th.font.size == pytest.approx(tf.font.size / 2)
+    assert th.xaxis.ticklen == pytest.approx(tf.xaxis.ticklen / 2)
+    assert th.xaxis.tickfont.size == pytest.approx(tf.xaxis.tickfont.size / 2)
+    assert th.margin.l == pytest.approx(tf.margin.l / 2)
+    assert list(th.colorway) == list(tf.colorway)
+    third = php.figure("CMS", scale=1 / 3)
+    assert (third.layout.width, third.layout.height) == (333, 333)

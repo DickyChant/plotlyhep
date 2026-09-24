@@ -88,3 +88,17 @@ def test_labeltext_loc2(fig):
     fig.update_yaxes(range=[0, 10])
     php.cms.label(fig, "Simulation", data=False, com=13.6, loc=2)
     return fig
+
+
+def test_label_size_follows_template():
+    """ATLAS labels are built on ATLAS's 14 pt base, and a scaled figure scales its labels"""
+    from plotlyhep._units import pt2px
+
+    a = php.figure("ATLAS")
+    exp_text(a, "ATLAS", "Internal")
+    atlas_txt = next(x for x in a.layout.annotations if x.text == "<i>Internal</i>")
+    assert atlas_txt.font.size == pytest.approx(pt2px(14))
+    h = php.figure("CMS", width=500, height=500)
+    exp_text(h, "CMS", "Preliminary")
+    small = next(x for x in h.layout.annotations if x.text == "<i>Preliminary</i>")
+    assert small.font.size == pytest.approx(pt2px(26) / 2)

@@ -62,11 +62,13 @@ def _rc(exp: str) -> dict:
 
 
 def figsize_px(exp: str = "CMS") -> tuple[int, int]:
+    """Figure size in pixels for an experiment style: mplhep's figure.figsize at 100 dpi (CMS 1000x1000, ATLAS 800x600)."""
     w, h = _rc(exp).get("figure.figsize", (10.0, 10.0))
     return int(round(w * DPI)), int(round(h * DPI))
 
 
-def template(exp: str = "CMS") -> go.layout.Template:
+def _template_native(exp: str = "CMS") -> go.layout.Template:
+    """The Plotly template for an experiment ("CMS" or "ATLAS"), built from mplhep's rcParams: fonts, tick geometry, colour cycle, margins."""
     rc = _rc(exp)
     base = float(rc.get("font.size", 26))
     fam = ", ".join(rc.get("font.sans-serif", ["TeX Gyre Heros", "Helvetica", "Arial"]))
@@ -128,6 +130,28 @@ def template(exp: str = "CMS") -> go.layout.Template:
         hovermode="closest",
     )
     return go.layout.Template(layout=layout)
+
+
+_SCALED_KEYS = {"size", "ticklen", "tickwidth", "linewidth", "standoff", "l", "r", "t", "b", "pad", "thickness"}
+
+
+def _scale_tree(node, s: float):
+    """Multiply every length-like number (font sizes, tick and line geometry, margins, standoffs) by s."""
+    if isinstance(node, dict):
+        return {k: (v * s if k in _SCALED_KEYS and isinstance(v, (int, float)) else _scale_tree(v, s)) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_scale_tree(v, s) for v in node]
+    return node
+
+
+def template(exp: str = "CMS", *, scale: float = 1.0) -> go.layout.Template:
+    """The Plotly template for an experiment ("CMS" or "ATLAS"), built from mplhep's rcParams: fonts,
+    tick geometry, colour cycle, margins. scale shrinks or enlarges every length together, so a figure
+    drawn at half the mplhep size keeps the same proportions (figure(width=..., height=...) does this)."""
+    t = _template_native(exp)
+    if scale == 1.0:
+        return t
+    return go.layout.Template(_scale_tree(t.to_plotly_json(), float(scale)))
 
 
 ROOT_EM = 0.90  # ROOT's SetTextSize(f) is not the em size: measured cap height = 0.65 f·H, so em ≈ 0.90 f·H
@@ -195,6 +219,7 @@ def template_json(exp: str = "CMS", *, transparent: bool = False) -> dict:
 
 
 def register() -> None:
+    """Register the experiment templates with plotly.io as "hep_cms" and "hep_atlas" (done on import)."""
     for exp in ("CMS", "ATLAS"):
         pio.templates[f"hep_{exp.lower()}"] = template(exp)
 

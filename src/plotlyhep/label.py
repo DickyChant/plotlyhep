@@ -27,6 +27,23 @@ def _lumi_line(year=None, lumi=None, lumi_format="{0}", com="13"):
     return s
 
 
+def _tmpl(fig: go.Figure):
+    t = fig.layout.template
+    return t.layout if t is not None and not isinstance(t, str) else go.Layout()
+
+
+def _font_px(fig: go.Figure) -> float:
+    return fig.layout.font.size or _tmpl(fig).font.size or pt2px(26)
+
+
+def _axis_px(fig: go.Figure, axis: str, part: str) -> float | None:
+    lay = getattr(fig.layout, axis)
+    tl = getattr(_tmpl(fig), axis)
+    if part == "tick":
+        return lay.tickfont.size or tl.tickfont.size
+    return lay.title.font.size or tl.title.font.size
+
+
 def exp_text(
     fig: go.Figure,
     exp: str = "",
@@ -38,7 +55,12 @@ def exp_text(
     xref="paper",
     yref="paper",
 ) -> go.Figure:
-    base_pt = (fig.layout.font.size or pt2px(26)) / pt2px(1) if fontsize is None else fontsize
+    """Experiment label in the mplhep style: bold experiment name, italic text, optional lumi line.
+
+    loc follows mplhep: 0 above the axes (name left, lumi right), 1-3 inside the top-left corner
+    with the text beside or below the name, 4 the ATLAS layout with the lumi line inside too.
+    lumi is the finished string (use exp_label to build it from lumi/com/year)."""
+    base_pt = _font_px(fig) / pt2px(1) if fontsize is None else fontsize
     fam = fig.layout.font.family
     exp_px, txt_px, lumi_px = pt2px(base_pt * SCALE_EXP), pt2px(base_pt), pt2px(base_pt * SCALE_LUMI)
     pad = exp_px  # mplhep: max(5 pt, exp font size)
@@ -107,6 +129,8 @@ def exp_text(
 
 
 def exp_label(fig, exp="", text="", *, loc=0, data=False, year=None, lumi=None, lumi_format="{0}", com="13", rlabel=None, fontsize=None):
+    """exp_text with the lumi line built for you (like mplhep.cms.label): data=False adds "Simulation",
+    year/lumi/com/lumi_format become "2018, 59.8 fb⁻¹ (13 TeV)", rlabel replaces the whole right label."""
     if rlabel is None:
         rlabel = _lumi_line(year=year, lumi=lumi, lumi_format=lumi_format, com=com)
     if not data and not text:
@@ -130,7 +154,7 @@ cms, atlas = _Exp("CMS"), _Exp("ATLAS")
 
 def set_xlabel(fig: go.Figure, text: str, *, size_px: float | None = None) -> go.Figure:
     """mplhep puts the x label right-aligned at the axis end (xaxis.labellocation=right)."""
-    tick_px = fig.layout.xaxis.tickfont.size or pt2px(21.67)
+    tick_px = _axis_px(fig, "xaxis", "tick") or pt2px(21.67)
     pad = fig.layout.xaxis.title.standoff or pt2px(6)
     fig.add_annotation(
         text=text,
@@ -142,14 +166,14 @@ def set_xlabel(fig: go.Figure, text: str, *, size_px: float | None = None) -> go
         yanchor="top",
         showarrow=False,
         yshift=-(pad + tick_px + pt2px(4)),
-        font=dict(size=size_px or fig.layout.xaxis.title.font.size or pt2px(26)),
+        font=dict(size=size_px or _axis_px(fig, "xaxis", "title") or pt2px(26)),
     )
     return fig
 
 
 def set_ylabel(fig: go.Figure, text: str, *, size_px: float | None = None, ticklabel_chars: int = 4) -> go.Figure:
     """y label top-aligned at the axis end (yaxis.labellocation=top), rotated."""
-    tick_px = fig.layout.yaxis.tickfont.size or pt2px(21.67)
+    tick_px = _axis_px(fig, "yaxis", "tick") or pt2px(21.67)
     pad = fig.layout.yaxis.title.standoff or pt2px(6)
     fig.add_annotation(
         text=text,
@@ -162,6 +186,6 @@ def set_ylabel(fig: go.Figure, text: str, *, size_px: float | None = None, tickl
         textangle=-90,
         showarrow=False,
         xshift=-(pad + 0.55 * tick_px * ticklabel_chars + pt2px(4) + (size_px or pt2px(26)) / 2),
-        font=dict(size=size_px or fig.layout.yaxis.title.font.size or pt2px(26)),
+        font=dict(size=size_px or _axis_px(fig, "yaxis", "title") or pt2px(26)),
     )
     return fig

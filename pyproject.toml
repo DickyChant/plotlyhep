@@ -30,14 +30,16 @@ dependencies = ["plotly>=5.20", "numpy>=1.22"]
 
 [project.urls]
 Homepage = "https://github.com/DickyChant/plotlyhep"
-Gallery = "https://dickychant.github.io/plotlyhep/"
+Documentation = "https://dickychant.github.io/plotlyhep/"
+Gallery = "https://dickychant.github.io/plotlyhep/gallery/"
 "Bug Tracker" = "https://github.com/DickyChant/plotlyhep/issues"
 
 [project.optional-dependencies]
 # The harness pins the renderer: Plotly 5 + kaleido 0.2.1 ships its own Chromium, so the pixel
 # comparison is reproducible on any machine. (Plotly 6 needs kaleido>=1 and a system Chrome.)
 test = ["plotly>=5.20,<6", "kaleido==0.2.1", "matplotlib>=3.8", "mplhep>=1.2", "pillow", "scikit-image", "pytest>=7"]
-dev = ["plotlyhep[test]", "ruff", "nox", "pre-commit"]
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.25"]
+dev = ["plotlyhep[test]", "plotlyhep[docs]", "ruff", "nox", "pre-commit"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
