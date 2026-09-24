@@ -33,5 +33,10 @@
   "mean_abs_diff": 1.53,
   "frac_pixels_gt40": 0.0091,
   "ssim": 0.96
+ },
+ "ratio_panel": {
+  "mean_abs_diff": 11.21,
+  "frac_pixels_gt40": 0.0635,
+  "ssim": 0.846
  }
 }

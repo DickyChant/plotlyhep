@@ -24,7 +24,7 @@ def _edges(bins, n):
 
 def histplot(fig: go.Figure, H, bins=None, *, yerr=None, histtype: str = "step", label=None,
              color=None, linewidth=None, edges: bool = True, stack: bool = False, density: bool = False,
-             showlegend=None, **kw) -> list:
+             showlegend=None, row: int = 1, **kw) -> list:
     """Add one or several histograms. H: 1D array or list of arrays (same bins).
     histtype: 'step' (mplhep default, stairs with edges to zero), 'fill', 'errorbar'.
     yerr: True -> sqrt(H), or an array / list of arrays."""
@@ -43,6 +43,7 @@ def histplot(fig: go.Figure, H, bins=None, *, yerr=None, histtype: str = "step",
     else: errs = [np.asarray(y) for y in (yerr if isinstance(yerr, (list, tuple)) else [yerr])]
     traces = []
     lw = pt2px(1.5 if linewidth is None else linewidth)      # mplhep step default 1.5 pt
+    axes = dict(xaxis="x" if row == 1 else f"x{row}", yaxis="y" if row == 1 else f"y{row}")   # panel of a ratio_figure
     for h, lab, col, err in zip(Hs, labels, colors, errs):
         show = (lab is not None) if showlegend is None else showlegend
         # hover: one entry per bin — "[lo, hi)  content ± err" — on an invisible marker at the bin centre,
@@ -68,7 +69,7 @@ def histplot(fig: go.Figure, H, bins=None, *, yerr=None, histtype: str = "step",
         else:
             raise ValueError(f"histtype {histtype!r} not supported")
     for t in traces:
-        fig.add_trace(t)
+        t.update(**axes); fig.add_trace(t)
     if any(l is not None for l in labels):
         fig.update_layout(showlegend=True)
     return traces

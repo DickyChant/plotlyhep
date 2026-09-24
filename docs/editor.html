@@ -1,0 +1,158 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plotlyhep — editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<style>
+ :root { --ink:#191c20; --soft:#5c636e; --navy:#1a4480; --line:rgba(25,28,32,.14); }
+ body { margin:0; font:15px/1.5 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--ink); background:#fcfcfb; }
+ header { padding:16px 24px; border-bottom:1px solid var(--line); display:flex; gap:18px; align-items:baseline; flex-wrap:wrap; }
+ header h1 { font:700 22px "TeX Gyre Heros",Helvetica,Arial,sans-serif; margin:0; } header h1 span { color:var(--navy); }
+ header a { color:var(--navy); } header .hint { color:var(--soft); font-size:13px; }
+ main { display:grid; grid-template-columns: 1fr 360px; gap:0; min-height: calc(100vh - 60px); }
+ #stage { padding:20px; overflow:auto; background:#f3f4f6; display:flex; align-items:flex-start; justify-content:center; }
+ #canvas { background:#fff; box-shadow:0 2px 14px rgba(0,0,0,.12); }
+ aside { border-left:1px solid var(--line); background:#fff; padding:14px 16px 40px; overflow:auto; font-size:13px; }
+ aside h2 { font:600 12px "IBM Plex Mono",Menlo,monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--navy); margin:16px 0 6px; }
+ aside h2:first-child { margin-top:0; }
+ .row { display:flex; gap:6px; align-items:center; margin:4px 0; flex-wrap:wrap; } .row label { min-width:74px; color:var(--soft); }
+ input[type=text], input[type=number], select, textarea { font:13px "IBM Plex Mono",Menlo,monospace; padding:4px 6px; border:1px solid rgba(0,0,0,.25); border-radius:4px; background:#fff; }
+ input[type=text] { flex:1; min-width:0; } input[type=number] { width:64px; } select { flex:1; }
+ button { font:12px "IBM Plex Mono",Menlo,monospace; padding:4px 9px; border:1px solid rgba(0,0,0,.25); border-radius:4px; background:#f9fafb; cursor:pointer; }
+ button:hover { background:#eef2ff; border-color:var(--navy); } button.primary { background:var(--navy); color:#fff; border-color:var(--navy); }
+ textarea { width:100%; box-sizing:border-box; height:110px; resize:vertical; }
+ .ann { display:flex; gap:6px; align-items:center; margin:3px 0; } .ann input { flex:1; }
+ .drop { border:1px dashed rgba(0,0,0,.3); border-radius:6px; padding:8px; color:var(--soft); text-align:center; }
+ .drop.over { border-color:var(--navy); color:var(--navy); }
+ .small { color:var(--soft); font-size:12px; }
+</style></head><body>
+<header><h1>plotlyhep <span>— editor</span></h1>
+ <span class="hint">drag labels, legend and annotations on the canvas · edit text by clicking it · zoom by dragging · everything you change is captured on the right</span>
+ <a href="../">← gallery</a></header>
+<main>
+ <div id="stage"><div id="canvas"></div></div>
+ <aside>
+  <h2>figure</h2>
+  <div class="row"><label>built-in</label><select id="figsel"></select></div>
+  <div class="drop" id="drop">drop a Plotly figure JSON here, or <input type="file" id="file" accept="application/json" style="display:none"><a href="#" id="pick">choose a file</a></div>
+  <div class="row"><label>canvas</label><input type="number" id="w" min="200" step="10"> × <input type="number" id="h" min="200" step="10"> px <button id="fit">fit</button></div>
+  <h2>style</h2>
+  <div class="row"><label>template</label><select id="tmpl"><option value="">(keep the figure's own)</option><option value="hep_cms">CMS (mplhep)</option><option value="hep_atlas">ATLAS (mplhep)</option><option value="root">ROOT gStyle-like</option><option value="plotly">plotly default</option></select></div>
+  <div class="row"><label>fonts ×</label><input type="range" id="fontscale" min="0.5" max="2" step="0.05" value="1" style="flex:1"><span id="fontval">1.00</span></div>
+  <div class="row"><label>axes</label><button id="xlog">x log</button><button id="ylog">y log</button><button id="legend">legend</button><button id="transp">transparent</button></div>
+  <div class="row"><label>x title</label><input type="text" id="xt"></div>
+  <div class="row"><label>y title</label><input type="text" id="yt"></div>
+  <h2>annotations</h2>
+  <div class="row"><button id="addtext">+ text</button><button id="addarrow">+ arrow</button><span class="small">then drag them into place</span></div>
+  <div id="annlist"></div>
+  <h2>edits (paste into Python)</h2>
+  <textarea id="edits" readonly placeholder="fig.update_layout(...) will appear here as you drag and edit"></textarea>
+  <div class="row"><button id="copyedits">copy</button><button id="reset">reset edits</button></div>
+  <h2>export</h2>
+  <div class="row"><button id="png" class="primary">PNG ×2</button><button id="svg">SVG</button><button id="json">figure JSON</button><button id="py">Python</button></div>
+  <p class="small">Edits persist in this browser per figure. Nothing leaves your machine.</p>
+ </aside>
+</main>
+<script>
+(async function () {
+  const gd = document.getElementById('canvas');
+  const $ = id => document.getElementById(id);
+  const manifest = await fetch('figures/index.json').then(r => r.json()).catch(() => ({figures: []}));
+  const templates = {};
+  for (const t of ['hep_cms', 'hep_atlas', 'root']) { try { templates[t] = await fetch(`templates/${t}.json`).then(r => r.json()); } catch (e) {} }
+  let fig = null, key = null, edits = {}, baseLayout = null;
+  const config = { editable: true, displaylogo: false, responsive: false, scrollZoom: true,
+                   edits: { annotationPosition: true, annotationTail: true, annotationText: true, legendPosition: true, axisTitleText: false, titleText: false, shapePosition: true },
+                   modeBarButtonsToRemove: ['select2d', 'lasso2d'] };
+  for (const f of manifest.figures) { const o = document.createElement('option'); o.value = f.key; o.textContent = f.title; $('figsel').appendChild(o); }
+  const deep = o => JSON.parse(JSON.stringify(o));
+  function storeKey() { return 'plotlyhep-editor:' + key; }
+  function draw() {
+    const layout = deep(fig.layout); Object.assign(layout, deepMerge(edits));
+    $('w').value = layout.width || 800; $('h').value = layout.height || 600;
+    return Plotly.react(gd, fig.data, layout, config).then(refreshPanel);
+  }
+  function deepMerge(e) { // relayout-style keys ("annotations[2].x") -> nested object applied over the layout
+    const out = {}; for (const [k, v] of Object.entries(e)) setPath(out, k, v); return out;
+  }
+  function setPath(obj, path, val) {
+    const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.'); let o = obj;
+    for (let i = 0; i < parts.length - 1; i++) { const p = parts[i]; const nxt = parts[i + 1];
+      if (!(p in o)) o[p] = /^\d+$/.test(nxt) ? [] : {}; o = o[p]; }
+    o[parts[parts.length - 1]] = val;
+  }
+  function remember(e) { for (const [k, v] of Object.entries(e)) { if (k === 'autosize' || k.startsWith('xaxis.range[') || k.startsWith('yaxis.range[')) { edits[k] = v; } else edits[k] = v; }
+    try { localStorage.setItem(storeKey(), JSON.stringify(edits)); } catch (err) {} showEdits(); }
+  function showEdits() {
+    const lines = Object.entries(edits).map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)},`);
+    $('edits').value = lines.length ? `fig.update_layout({\n${lines.join('\n')}\n})` : '';
+  }
+  function refreshPanel() {
+    const L = gd._fullLayout || {};
+    $('xt').value = (gd.layout.xaxis && gd.layout.xaxis.title && gd.layout.xaxis.title.text) || '';
+    $('yt').value = (gd.layout.yaxis && gd.layout.yaxis.title && gd.layout.yaxis.title.text) || '';
+    const list = $('annlist'); list.innerHTML = '';
+    (gd.layout.annotations || []).forEach((a, i) => {
+      const row = document.createElement('div'); row.className = 'ann';
+      const inp = document.createElement('input'); inp.type = 'text'; inp.value = a.text || ''; inp.title = `annotation ${i}`;
+      inp.addEventListener('change', () => Plotly.relayout(gd, { [`annotations[${i}].text`]: inp.value }));
+      const del = document.createElement('button'); del.textContent = '×'; del.title = 'delete';
+      del.addEventListener('click', () => { const anns = deep(gd.layout.annotations); anns.splice(i, 1); Plotly.relayout(gd, { annotations: anns }); });
+      row.appendChild(inp); row.appendChild(del); list.appendChild(row);
+    });
+    showEdits();
+  }
+  async function load(k, obj) {
+    key = k; fig = obj; baseLayout = deep(fig.layout);
+    try { edits = JSON.parse(localStorage.getItem(storeKey()) || '{}'); } catch (e) { edits = {}; }
+    await draw();
+  }
+  gd.addEventListener = gd.addEventListener; // (Plotly attaches .on after first plot)
+  async function loadBuiltin(k) { const f = manifest.figures.find(x => x.key === k); if (!f) return; const obj = await fetch(f.file).then(r => r.json()); await load(k, obj); }
+  $('figsel').addEventListener('change', e => loadBuiltin(e.target.value));
+  // file / drop
+  $('pick').addEventListener('click', e => { e.preventDefault(); $('file').click(); });
+  $('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) f.text().then(t => load('file:' + f.name, JSON.parse(t))); });
+  const drop = $('drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); }); drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) f.text().then(t => load('file:' + f.name, JSON.parse(t))); });
+  // canvas size
+  const resize = () => Plotly.relayout(gd, { width: +$('w').value, height: +$('h').value });
+  $('w').addEventListener('change', resize); $('h').addEventListener('change', resize);
+  $('fit').addEventListener('click', () => { const s = $('stage'); $('w').value = Math.max(300, s.clientWidth - 40); $('h').value = Math.max(300, Math.round((s.clientWidth - 40) * 0.72)); resize(); });
+  // style
+  $('tmpl').addEventListener('change', e => { const v = e.target.value; if (!v) Plotly.relayout(gd, { template: baseLayout.template || null }); else if (v === 'plotly') Plotly.relayout(gd, { template: 'plotly' }); else Plotly.relayout(gd, { template: templates[v] }); });
+  $('fontscale').addEventListener('input', e => {
+    const s = +e.target.value; $('fontval').textContent = s.toFixed(2); const u = {};
+    const base = baseLayout.font && baseLayout.font.size || 12; u['font.size'] = base * s;
+    (baseLayout.annotations || []).forEach((a, i) => { if (a.font && a.font.size) u[`annotations[${i}].font.size`] = a.font.size * s; });
+    for (const ax of ['xaxis', 'yaxis']) { const A = baseLayout[ax] || {}; if (A.tickfont && A.tickfont.size) u[`${ax}.tickfont.size`] = A.tickfont.size * s; if (A.title && A.title.font && A.title.font.size) u[`${ax}.title.font.size`] = A.title.font.size * s; }
+    if (baseLayout.legend && baseLayout.legend.font && baseLayout.legend.font.size) u['legend.font.size'] = baseLayout.legend.font.size * s;
+    Plotly.relayout(gd, u);
+  });
+  const toggleAxis = ax => () => Plotly.relayout(gd, { [`${ax}.type`]: (gd._fullLayout[ax].type === 'log') ? 'linear' : 'log' });
+  $('xlog').addEventListener('click', toggleAxis('xaxis')); $('ylog').addEventListener('click', toggleAxis('yaxis'));
+  $('legend').addEventListener('click', () => Plotly.relayout(gd, { showlegend: !gd._fullLayout.showlegend }));
+  $('transp').addEventListener('click', () => { const t = gd._fullLayout.paper_bgcolor === 'rgba(0,0,0,0)'; Plotly.relayout(gd, { paper_bgcolor: t ? 'white' : 'rgba(0,0,0,0)', plot_bgcolor: t ? 'white' : 'rgba(0,0,0,0)' }); });
+  $('xt').addEventListener('change', e => Plotly.relayout(gd, { 'xaxis.title.text': e.target.value }));
+  $('yt').addEventListener('change', e => Plotly.relayout(gd, { 'yaxis.title.text': e.target.value }));
+  // annotations
+  const addAnn = arrow => () => { const anns = deep(gd.layout.annotations || []);
+    anns.push({ text: arrow ? 'point here' : 'new text', x: 0.5, y: 0.6, xref: 'paper', yref: 'paper', showarrow: arrow, ax: arrow ? 60 : 0, ay: arrow ? -50 : 0, arrowhead: 2, font: { size: (baseLayout.font && baseLayout.font.size) || 16 } });
+    Plotly.relayout(gd, { annotations: anns }); };
+  $('addtext').addEventListener('click', addAnn(false)); $('addarrow').addEventListener('click', addAnn(true));
+  // edits, reset, export
+  $('copyedits').addEventListener('click', () => navigator.clipboard.writeText($('edits').value));
+  $('reset').addEventListener('click', () => { edits = {}; try { localStorage.removeItem(storeKey()); } catch (e) {} draw(); });
+  const name = () => (key || 'figure').replace(/^file:/, '').replace(/\.json$/, '');
+  $('png').addEventListener('click', () => Plotly.downloadImage(gd, { format: 'png', scale: 2, filename: name() }));
+  $('svg').addEventListener('click', () => Plotly.downloadImage(gd, { format: 'svg', filename: name() }));
+  function dl(text, fn, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = fn; document.body.appendChild(a); a.click(); a.remove(); }
+  $('json').addEventListener('click', () => dl(JSON.stringify({ data: gd.data, layout: gd.layout }, null, 1), name() + '.json', 'application/json'));
+  $('py').addEventListener('click', () => dl(`import json, plotly.io as pio\nfig = pio.from_json(open(${JSON.stringify(name() + '.json')}).read())\n${$('edits').value || '# no edits yet'}\nfig.show()\n`, name() + '.py', 'text/x-python'));
+  // first plot, then listen
+  const start = new URLSearchParams(location.search).get('fig') || (manifest.figures[0] && manifest.figures[0].key);
+  if (start) { $('figsel').value = start; await loadBuiltin(start); }
+  else await load('empty', { data: [], layout: { width: 800, height: 600 } });
+  gd.on('plotly_relayout', e => { if (Object.keys(e).some(k => k !== 'autosize')) remember(e); refreshPanel(); });
+})();
+</script>
+</body></html>

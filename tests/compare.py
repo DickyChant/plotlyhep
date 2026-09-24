@@ -99,7 +99,26 @@ def case_annotate_roundtrip():
     from plotlyhep.convert import from_mpl, to_mpl
     fig = _annotated_mpl(); return fig, to_mpl(from_mpl(fig))
 
-CASES = {"axes_label": case_axes_label, "step_hist": case_step_hist, "inside_label": case_inside_label,
+def case_ratio_panel():
+    """main + ratio panel: matplotlib gridspec (height_ratios 3:1, hspace 0.05, sharex) under mplhep vs ratio_figure."""
+    hep.style.use("CMS")
+    fig, (ax, rax) = plt.subplots(2, 1, figsize=(10, 10), dpi=100, sharex=True, gridspec_kw={"height_ratios": [3, 1], "hspace": 0.05})
+    hep.histplot(MC1, BINS, label="MC", ax=ax)
+    hep.histplot(DATA, BINS, yerr=True, histtype="errorbar", color="black", label="Data", ax=ax)
+    ax.set_xlim(0, 200); ax.set_ylim(0, 450); ax.legend(loc="upper right"); ax.set_ylabel("Events / 5 GeV")
+    r = np.where(MC1 > 0, DATA / np.where(MC1 > 0, MC1, 1), np.nan); re = np.where(MC1 > 0, np.sqrt(DATA) / np.where(MC1 > 0, MC1, 1), np.nan)
+    rax.errorbar(0.5 * (BINS[1:] + BINS[:-1]), r, yerr=re, fmt=".", color="black", markersize=6, elinewidth=1)
+    rax.axhline(1, color="gray", linestyle="--", linewidth=1); rax.set_ylim(0.5, 1.5); rax.set_ylabel("Data / MC"); rax.set_xlabel("m$_{jj}$ [GeV]")
+    hep.cms.label("Preliminary", data=True, lumi=138, com=13.6, ax=ax, loc=0)
+    p = php.ratio_figure("CMS", height_ratios=(3, 1), hspace=0.05)
+    php.histplot(p, MC1, BINS, label="MC"); php.histplot(p, DATA, BINS, yerr=True, histtype="errorbar", color="black", label="Data")
+    php.ratioplot(p, DATA, MC1, BINS, band=False)
+    p.update_xaxes(range=[0, 200]); p.update_layout(yaxis=dict(range=[0, 450]))
+    php.set_ylabel(p, "Events / 5 GeV"); php.set_xlabel(p, "m<sub>jj</sub> [GeV]")
+    php.cms.label(p, "Preliminary", data=True, lumi=138, com=13.6, loc=0)
+    return fig, p
+
+CASES = {"axes_label": case_axes_label, "step_hist": case_step_hist, "inside_label": case_inside_label, "ratio_panel": case_ratio_panel,
          "annotate_from_mpl": case_annotate_from_mpl, "annotate_roundtrip": case_annotate_roundtrip,
          "convert_from_mpl": case_convert_from_mpl, "convert_roundtrip": case_convert_roundtrip}
 

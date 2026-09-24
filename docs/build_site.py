@@ -150,6 +150,36 @@ f106 = root_figures.hzz_df106()
 emb102 = embed(f102, "fig-df102", editable=True, persist=True, inherit_template=False, width="796px", height="672px")
 emb106 = embed(f106, "fig-df106", editable=True, persist=True, inherit_template=False, width="596px", height="572px")
 
+
+# ---------------------------------------------------------------- ratio panel: H->4l data / MC (ATLAS template)
+DR = json.load(open(os.path.join(HERE, "data", "hzz4l_root.json"))); RE = np.asarray(DR["edges"]); rctr = 0.5 * (RE[1:] + RE[:-1])
+rcat = {k: np.asarray(v, float) for k, v in DR["categories"].items()}; rnom = np.asarray(DR["mc_total"]["nominal"], float); rw2 = np.asarray(DR["mc_total"]["sumw2"], float)
+rdata = np.asarray(DR["data"]["counts"], float)
+rfig = php.ratio_figure("ATLAS", height_ratios=(3, 1), hspace=0.05, ratio_range=(0, 2.5))
+php.histplot(rfig, [rcat["other"], rcat["zz"], rcat["higgs"]], RE, stack=True, histtype="fill", color=["#cc99ff", "#99ccff", "#990000"], label=["Other MC", "ZZ MC", "Higgs MC"])
+php.histplot(rfig, rdata, RE, yerr=True, histtype="errorbar", color="black", label="Data")
+php.ratioplot(rfig, rdata, rnom, RE, den_w2=rw2, label="Data / MC")
+rfig.update_layout(yaxis=dict(range=[0, 35]), xaxis2=dict(range=[80, 170]), legend=dict(x=0.98, y=0.98, xanchor="right", yanchor="top", traceorder="reversed"))
+php.set_ylabel(rfig, "Events / 3.75 GeV", ticklabel_chars=2); php.set_xlabel(rfig, "m<sub>4ℓ</sub> [GeV]")
+php.atlas.label(rfig, "Open Data", data=True, lumi=10, com=13, loc=1)
+rfig.update_layout(margin=dict(l=118, r=30, t=70, b=84), hoverlabel=dict(bgcolor="white", font=dict(size=13, family="Helvetica, Arial"), align="left"))
+ratio_emb = embed(rfig, "fig-ratio", editable=True, persist=True, inherit_template=False, width="800px", height="600px")
+
+# ---------------------------------------------------------------- editor: figures + templates as JSON, page copied over
+from plotlyhep.html import _NumpyEncoder
+from plotlyhep.styles import template_json
+ed = os.path.join(out, "editor"); os.makedirs(os.path.join(ed, "figures"), exist_ok=True); os.makedirs(os.path.join(ed, "templates"), exist_ok=True)
+manifest = []
+for keyname, title, figobj in (("df102", "ROOT df102 — CMS dimuon spectrum (rebuild)", f102), ("df106", "ROOT df106 — ATLAS H→4ℓ (rebuild)", f106),
+                               ("hzz4l", "H→4ℓ in the plotlyhep ATLAS template", fig), ("dimuon", "dimuon spectrum in the plotlyhep CMS template", dfig), ("ratio", "H→4ℓ data / MC with a ratio panel", rfig)):
+    j = figobj.to_plotly_json(); j["layout"].pop("updatemenus", None)
+    json.dump(j, open(os.path.join(ed, "figures", keyname + ".json"), "w"), cls=_NumpyEncoder)
+    manifest.append({"key": keyname, "title": title, "file": f"figures/{keyname}.json"})
+json.dump({"figures": manifest}, open(os.path.join(ed, "figures", "index.json"), "w"))
+for tname, tj in (("hep_cms", template_json("CMS")), ("hep_atlas", template_json("ATLAS")), ("root", php.root_template(800, 600).to_plotly_json())):
+    json.dump(tj, open(os.path.join(ed, "templates", tname + ".json"), "w"), cls=_NumpyEncoder)
+open(os.path.join(ed, "index.html"), "w").write(open(os.path.join(HERE, "editor.html")).read())
+
 n_sel = {k: s["selected_raw"] for k, s in D["samples"].items()}
 page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plotlyhep — gallery</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -169,21 +199,22 @@ page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plo
  a {{ color: #1a4480; }} .small {{ color: #5c636e; font-size: 14px; }}
 </style></head><body>
 <header><h1>plotlyhep <span>— gallery</span></h1>
-<p>The mplhep look for Plotly, on real open data. Every element of a plot knows what it is: hover a stacked process and it tells you which samples it is made of, how they were generated, their cross sections and what they contribute in that bin. <a href="https://github.com/DickyChant/plotlyhep">github.com/DickyChant/plotlyhep</a></p></header>
+<p>The mplhep look for Plotly, on real open data. Every element of a plot knows what it is: hover a stacked process and it tells you which samples it is made of, how they were generated, their cross sections and what they contribute in that bin. <a href="https://github.com/DickyChant/plotlyhep">github.com/DickyChant/plotlyhep</a> · <a href="editor/"><b>open the editor</b></a> — load any of these figures or your own Plotly JSON, drag things around, export JSON / PNG / SVG or the exact <code>update_layout</code> edits.</p></header>
 <main>
 <section id="root">
   <h2>the ROOT tutorial plots, rebuilt — reference on the left, plotlyhep on the right</h2>
   <p>ROOT's <code>df102_NanoAODDimuonAnalysis</code> and <code>df106_HiggsToFourLeptons</code> tutorials draw the two canonical open-data plots. The right-hand figures are rebuilt from the tutorial sources — same selection and normalisation, same binning, canvas, fonts, label positions, colours — and compared pixel by pixel with the tutorial's own output on every commit (<a href="https://github.com/DickyChant/plotlyhep/blob/main/tests/compare_root.py">tests/compare_root.py</a>). What the rebuild adds: hover a resonance label, a bin, a stack segment or a data point.</p>
   <div class="pair"><figure><figcaption>ROOT df102 — tutorial output (root.cern)</figcaption><img src="{ref102}" alt="df102 reference"></figure>
-       <figure><figcaption>plotlyhep — live</figcaption><div class="fig">{emb102}</div></figure></div>
+       <figure><figcaption>plotlyhep — live · <a href="editor/?fig=df102">open in editor</a></figcaption><div class="fig">{emb102}</div></figure></div>
   <div class="pair"><figure><figcaption>ROOT df106 — tutorial output (root.cern)</figcaption><img src="{ref106}" alt="df106 reference"></figure>
-       <figure><figcaption>plotlyhep — live</figcaption><div class="fig">{emb106}</div></figure></div>
+       <figure><figcaption>plotlyhep — live · <a href="editor/?fig=df106">open in editor</a></figcaption><div class="fig">{emb106}</div></figure></div>
   <p class="small">The 4ℓ selection is the tutorial's exact one (isolation, impact parameters, 25/15/10 GeV; ZZ × 1.3; 10 064 pb⁻¹; electron scale-factor variations for the hatched band), reduced by <code>docs/make_data_root106.py</code>; the dimuon spectrum is the tutorial's 30 000 uniform bins collapsed per pixel column the way ROOT's painter does it.</p>
 </section>
 <section id="hzz4l">
   <h2>the same data in the plotlyhep template — H → ZZ* → 4ℓ, with controls</h2>
   <p>The four-lepton invariant mass after the standard selection ({D['selection']}), Higgs signal stacked on the ZZ* and reducible backgrounds, data with Poisson errors. Built from <a href="https://opendata.cern.ch/record/15005">CERN Open Data record 15005</a> with the normalisation of the ATLAS outreach framework; the same selection as ROOT's <code>df106_HiggsToFourLeptons</code> tutorial.</p>
   <div class="fig">{hzz}</div>
+  <p class="small"><a href="editor/?fig=hzz4l">open in editor</a></p>
   <p class="try">try: hover a stack segment · hover a data point (observed vs S and B) · channel dropdown · log axis · signal × 10 · click a legend entry to hide it. The figure is frozen; press <b>edit</b> (top right) to zoom, pan, drag the legend or move labels — your edits stay in this browser; <b>reset</b> discards them</p>
   <p class="small">Selected events: data {D['data']['selected']} · MC after selection: {', '.join(f'{k} {v}' for k, v in n_sel.items())}. Reduced once by <code>docs/make_data.py</code> to a {os.path.getsize(os.path.join(HERE,'data','hzz4l.json'))//1024} kB JSON; this page is built from that file alone.</p>
 </section>
@@ -191,7 +222,13 @@ page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plo
   <h2>the same data in the plotlyhep template — the dimuon spectrum, with controls</h2>
   <p>Every opposite-sign muon pair's invariant mass on a log–log axis: three decades of QCD and electroweak physics in one histogram, from the light mesons through the charmonium and bottomonium families to the Z. Hover a peak's label to learn what it is; hover a bin for its count; zoom to a family. {dm_desc}.</p>
   <div class="fig">{dimuon}</div>
+  <p class="small"><a href="editor/?fig=dimuon">open in editor</a></p>
   <p class="try">try: hover the J/ψ or Υ labels · opposite- vs same-sign (no resonances in same-sign pairs: the peaks are physics, not detector artefacts) · zoom presets · frozen until you press <b>edit</b>, then drag to zoom or move the labels</p>
+</section>
+<section id="ratio">
+  <h2>main panel + ratio panel</h2>
+  <p><code>php.ratio_figure("ATLAS", height_ratios=(3, 1), hspace=0.05)</code> lays the two panels out exactly as matplotlib's GridSpec would (checked by the pixel harness against an mplhep figure), shares the x axis, and <code>php.ratioplot(fig, data, mc, bins, den_w2=…)</code> draws data / MC with its errors, the MC statistical band around one, and the dashed reference line. Hover a ratio point for the numbers behind it. <a href="editor/?fig=ratio">open in editor</a></p>
+  <div class="fig">{ratio_emb}</div>
 </section>
 <section id="use">
   <h2>use it</h2>

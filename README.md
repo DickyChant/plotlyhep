@@ -1,6 +1,6 @@
 # plotlyhep — mplhep, mirrored for Plotly
 
-**Gallery:** https://dickychant.github.io/plotlyhep/ — H → ZZ* → 4ℓ on ATLAS Open Data with every stacked process explaining itself on hover, and the CMS dimuon spectrum (61.5 M events from Run2012B+C) with every resonance explaining itself on hover.
+**Gallery:** https://dickychant.github.io/plotlyhep/ (and its **editor** at `/editor/`: load any figure or your own Plotly JSON, drag things, export JSON / PNG / SVG or the exact `update_layout` edits) — H → ZZ* → 4ℓ on ATLAS Open Data with every stacked process explaining itself on hover, and the CMS dimuon spectrum (61.5 M events from Run2012B+C) with every resonance explaining itself on hover.
 
 [mplhep](https://github.com/scikit-hep/mplhep) gives matplotlib the CMS / ATLAS
 look. `plotlyhep` gives Plotly the same look — and proves it with pixels.
@@ -15,6 +15,14 @@ php.histplot(fig, data, bins, yerr=True, histtype="errorbar", color="black", lab
 php.cms.label(fig, "Preliminary", data=True, lumi=138, com=13.6, loc=0)      # CMS Preliminary  138 fb⁻¹ (13.6 TeV)
 php.set_xlabel(fig, "m<sub>jj</sub> [GeV]"); php.set_ylabel(fig, "Events / 5 GeV")
 fig.show()                                 # interactive; fig.write_image("plot.png") via kaleido
+```
+
+## Ratio panels
+
+```python
+fig = php.ratio_figure("CMS", height_ratios=(3, 1), hspace=0.05)   # matplotlib GridSpec geometry, shared x
+php.histplot(fig, mc, bins, label="MC"); php.histplot(fig, data, bins, yerr=True, histtype="errorbar", color="black", label="Data")
+php.ratioplot(fig, data, mc, bins, den_w2=mc_w2)                    # data/MC ± err, MC stat. band, dashed line at 1
 ```
 
 ## Two ways in
@@ -49,6 +57,7 @@ Current state (TeX Gyre Heros available to both renderers):
 | filled histogram, label inside (`loc=2`) | 5.9 | 3.1 % | 0.921 |
 | `from_mpl` of the histogram figure | 7.9 | 4.2 % | 0.905 |
 | `from_mpl` → `to_mpl` round trip | 0.04 | 0.02 % | 0.999 |
+| main + ratio panel vs matplotlib GridSpec (3:1, hspace 0.05) | 9.7 | 5.4 % | 0.866 |
 
 What the remaining difference is: sub-pixel text rasterisation (two different
 text engines), Plotly's slightly heavier line antialiasing, and legend entry
