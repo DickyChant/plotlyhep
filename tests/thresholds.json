@@ -20,8 +20,8 @@
   "ssim": 0.886
  },
  "convert_roundtrip": {
-  "mean_abs_diff": 0.24,
-  "frac_pixels_gt40": 0.0021,
-  "ssim": 0.977
+  "mean_abs_diff": 0.09,
+  "frac_pixels_gt40": 0.0013,
+  "ssim": 0.979
  }
 }

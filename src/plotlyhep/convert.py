@@ -99,12 +99,22 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
         layout[xkey] = axis_dict(ax.xaxis, *ax.get_xlim(), [x0, x1], lw)
         layout[ykey] = axis_dict(ax.yaxis, *ax.get_ylim(), [y0, y1], lw)
         # ---- artists
-        # errorbar() keeps its legend label on the container, not on the marker line
+        # errorbar() keeps its legend label on the container and draws the bars as a
+        # LineCollection: fold both back onto the marker trace (semantic error_y, hover-able)
         from matplotlib.container import ErrorbarContainer
-        relabel = {}
+        relabel, err_for, consumed = {}, {}, set()
         for c in getattr(ax, "containers", []):
-            if isinstance(c, ErrorbarContainer) and c[0] is not None and not str(c.get_label()).startswith("_"):
-                relabel[id(c[0])] = c.get_label()
+            if isinstance(c, ErrorbarContainer) and c[0] is not None:
+                if not str(c.get_label()).startswith("_"): relabel[id(c[0])] = c.get_label()
+                for lc in (c[2] or []):
+                    segs = np.asarray(lc.get_segments())
+                    if len(segs) and np.allclose(segs[:, 0, 0], segs[:, 1, 0]):      # vertical => y errors
+                        yv = np.asarray(c[0].get_ydata(), float)
+                        lo, hi = segs[:, :, 1].min(1), segs[:, :, 1].max(1)
+                        err_for[id(c[0])] = (yv - lo, hi - yv, px(lc.get_linewidths()[0]) if len(lc.get_linewidths()) else px(1))
+                        consumed.add(id(lc))
+        # legend order follows matplotlib's handle order (lines, patches, collections, containers)
+        _, leg_labels = ax.get_legend_handles_labels(); rank = {l: i for i, l in enumerate(leg_labels)}
         for ln in ax.lines:
             x, y = ln.get_xdata(), ln.get_ydata()
             if len(x) == 0: continue
@@ -115,7 +125,10 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
             mode = "+".join([m for m, ok in (("lines", has_line), ("markers", mk is not None)) if ok]) or "lines"
             col = _rgba(ln.get_color(), ln.get_alpha())
             lab = ln.get_label(); show = not str(lab).startswith("_")
+            ey = err_for.get(id(ln))
             out.add_trace(go.Scatter(x=x, y=y, mode=mode, name=lab if show else "", showlegend=show, xaxis=xs, yaxis=ys,
+                                     legendrank=rank.get(lab, 1000),
+                                     error_y=dict(type="data", symmetric=False, array=ey[1], arrayminus=ey[0], thickness=ey[2], width=0, color=col) if ey else None,
                                      line=dict(shape=shape, width=px(ln.get_linewidth()), dash=ls, color=col),
                                      marker=dict(symbol=mk or "circle", size=px(ln.get_markersize()) * (0.5 if ln.get_marker() == "." else 1.0),
                                                  color=_rgba(ln.get_markerfacecolor(), ln.get_alpha()) if ln.get_markerfacecolor() != "none" else "rgba(0,0,0,0)",
@@ -131,6 +144,7 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
                 filled = fc[3] > 0 if len(fc) == 4 else False
                 lab = p.get_label(); show = not str(lab).startswith("_")
                 out.add_trace(go.Scatter(x=xx, y=yy, mode="lines", name=lab if show else "", showlegend=show, xaxis=xs, yaxis=ys,
+                                         legendrank=rank.get(lab, 1000),
                                          line=dict(shape="hv", width=px(p.get_linewidth()) if ec[3] > 0 else 0, color=_rgba(ec)),
                                          fill="tozeroy" if filled else None, fillcolor=_rgba(fc) if filled else None))
             elif isinstance(p, Rectangle) and p.get_width() and p.get_height():
@@ -149,6 +163,7 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
                 scale = [[i / 10, _rgba(cmap(i / 10))] for i in range(11)]
                 out.add_trace(go.Heatmap(x=xc, y=yc, z=np.asarray(z), zmin=vmin, zmax=vmax, colorscale=scale, showscale=False, xaxis=xs, yaxis=ys))
             elif isinstance(c, LineCollection):
+                if id(c) in consumed: continue
                 segs = c.get_segments(); col = _rgba(c.get_colors()[0]) if len(c.get_colors()) else "black"
                 xx, yy = [], []
                 for s in segs: xx += [s[0][0], s[1][0], None]; yy += [s[0][1], s[1][1], None]
@@ -298,10 +313,13 @@ def to_mpl(pfig: go.Figure, *, dpi: float = 100.0):
                      fontsize=pt(a.font.size or L.font.size or 14), rotation=-(a.textangle or 0), fontweight=weight, fontstyle=style,
                      color=_mpl_color(a.font.color) or "black", family=fam)
     if L.showlegend:
+        ranks = {tr.name: (tr.legendrank if tr.legendrank is not None else 1000) for tr in pfig.data if tr.name}
         for ax in axes.values():
             h, l = ax.get_legend_handles_labels()
             if h:
+                order = sorted(range(len(l)), key=lambda i: (ranks.get(l[i], 1000), i))
                 lg = L.legend; loc = "upper right"
                 fs = pt(lg.font.size) if lg and lg.font and lg.font.size else None
-                ax.legend(loc=loc, frameon=bool(lg and lg.bgcolor and lg.bgcolor != "rgba(0,0,0,0)"), fontsize=fs)
+                ax.legend([h[i] for i in order], [l[i] for i in order], loc=loc,
+                          frameon=bool(lg and lg.bgcolor and lg.bgcolor != "rgba(0,0,0,0)"), fontsize=fs)
     return fig
