@@ -56,7 +56,7 @@ histograms land within 2 px.
 ## Install
 
 ```bash
-pip install -e ".[test]"          # kaleido 0.2.1 (bundled Chromium), matplotlib, mplhep, scikit-image, pytest
+pip install -e ".[test]"          # pins Plotly 5 + kaleido 0.2.1 (bundled Chromium) for the harness; the library itself runs on Plotly 5 or 6
 sudo apt-get install fonts-texgyre  # or any way of giving Chromium the TeX Gyre Heros face mplhep uses
 pytest -q tests
 ```
