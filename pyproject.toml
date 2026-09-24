@@ -71,7 +71,7 @@ ignore_errors = true
 
 [tool.codespell]
 skip = "*.json,*.png,*.svg,./site,./.venv,./tests/output,*.egg-info,./.git"
-ignore-words-list = "hist,ans,ot,nd,te,heros,doubleclick,slac"
+ignore-words-list = "hist,ans,ot,nd,te,heros,doubleclick,slac,notin"
 
 [tool.ruff]
 line-length = 140
