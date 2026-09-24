@@ -1,88 +1,129 @@
-"""Build the GitHub Pages site from the harness: interactive figures (hover, editable
-annotations), every pixel comparison with its numbers, and the page-level theme demo.
+"""Build the GitHub Pages gallery: real open-data physics, interactive.
     python docs/build_site.py site/
-"""
+Reads docs/data/hzz4l.json (made once by docs/make_data.py); no network needed."""
 from __future__ import annotations
-import base64, json, os, sys, html as H
+import json, os, sys
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
-sys.path[:0] = [os.path.join(ROOT, "src"), os.path.join(ROOT, "tests")]
-import compare                                        # renders the cases, writes tests/output
+sys.path.insert(0, os.path.join(ROOT, "src"))
+import plotly.graph_objects as go
 import plotlyhep as php
 from plotlyhep.html import script_tag, embed, SLIDE_CSS
-import plotly.graph_objects as go
+from plotlyhep._units import pt2px
 
-out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "site")
-os.makedirs(os.path.join(out, "img"), exist_ok=True)
-metrics = compare.run()
-def img(name):
-    src = os.path.join(compare.OUT, name); dst = os.path.join(out, "img", name)
-    open(dst, "wb").write(open(src, "rb").read()); return f"img/{name}"
+out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "site"); os.makedirs(out, exist_ok=True)
+D = json.load(open(os.path.join(HERE, "data", "hzz4l.json")))
+E = np.asarray(D["edges"]); ctr = 0.5 * (E[1:] + E[:-1]); width = np.diff(E)
+GROUP_ORDER = ["Z+jets, tt̄", "ZZ*", "Higgs"]                     # bottom -> top of the stack
+GROUP_COLOR = {"Z+jets, tt̄": "#f89c20", "ZZ*": "#5790fc", "Higgs": "#e42536"}
+CHANNEL_LABEL = {"all": "4e + 4μ + 2e2μ", "4e": "4e", "4mu": "4μ", "2e2mu": "2e2μ"}
 
-DESC = {
- "axes_label": "empty axes with the CMS label (loc 0) and right/top-aligned axis titles",
- "step_hist": "two step histograms, data with error bars, legend — the everyday plot",
- "inside_label": "filled histogram, label inside the axes (loc 2)",
- "annotate_from_mpl": "matplotlib ax.annotate arrows, converted with from_mpl",
- "annotate_roundtrip": "the same, converted to Plotly and back to matplotlib",
- "convert_from_mpl": "the histogram figure built with mplhep, converted with from_mpl",
- "convert_roundtrip": "from_mpl then to_mpl: matplotlib → Plotly → matplotlib",
-}
-rows = []
-for name, m in metrics.items():
-    fig, p = compare.CASES[name]()
-    if isinstance(p, go.Figure):
-        p.update_layout(width=None, height=None, autosize=True)
-        right = embed(p, f"fig-{name}", editable=True, inherit_template=False, height="520px")
-    else:
-        right = f'<img src="{img(name + "_plotly.png")}" alt="{name} candidate">'
-    rows.append(f"""
-<section class="case" id="{name}">
-  <h2>{name}</h2><p class="desc">{H.escape(DESC.get(name, ""))}</p>
-  <div class="triple">
-    <figure><figcaption>mplhep (matplotlib) — ground truth</figcaption><img src="{img(name + '_mpl.png')}" alt="{name} mplhep"></figure>
-    <figure><figcaption>plotlyhep — {"live: hover the bins, drag the annotations" if isinstance(p, go.Figure) else "matplotlib after the round trip"}</figcaption>{right}</figure>
-    <figure><figcaption>difference (white = identical)</figcaption><img src="{img(name + '_diff.png')}" alt="{name} diff"></figure>
-  </div>
-  <p class="metrics">mean |Δ| = <b>{m['mean_abs_diff']:.2f}</b> grey levels · pixels differing by &gt; 40: <b>{100*m['frac_pixels_gt40']:.2f} %</b> · SSIM = <b>{m['ssim']:.3f}</b></p>
-</section>""")
+def group_arrays(chan):
+    """per group: yield, sumw2, raw, and the per-sample breakdown, for one channel (or all)."""
+    g = {}
+    for key, s in D["samples"].items():
+        h = s if chan == "all" else s["by_channel"][chan]
+        y, y2, n = np.asarray(h["yield"]), np.asarray(h["sumw2"]), np.asarray(h["raw"])
+        G = g.setdefault(s["group"], {"y": np.zeros(len(ctr)), "y2": np.zeros(len(ctr)), "n": np.zeros(len(ctr), int), "parts": {}})
+        G["y"] += y; G["y2"] += y2; G["n"] += n; G["parts"][key] = y
+    return g
 
-# a figure built WITHOUT plotlyhep, styled only by the page-level template
-plain = go.Figure()
-x = np.linspace(0, 200, 41); plain.add_trace(go.Bar(x=0.5 * (x[1:] + x[:-1]), y=np.exp(-((x[1:] - 90) / 30) ** 2) * 300, name="plain go.Bar"))
-plain.update_layout(xaxis_title="m<sub>jj</sub> [GeV]", yaxis_title="Events", showlegend=True)
-theme_demo = embed(plain, "fig-theme", editable=False, persist=False, height="480px")
+def hover_for(group, G, total):
+    """One HTML string per bin: what the process is and what it contributes here."""
+    rows = []
+    for i in range(len(ctr)):
+        share = 100 * G["y"][i] / total[i] if total[i] > 0 else 0
+        parts = sorted(G["parts"].items(), key=lambda kv: -kv[1][i])
+        lines = [f"<b>{group}</b> — {D['groups'][group]}",
+                 f"m<sub>4ℓ</sub> ∈ [{E[i]:.2f}, {E[i+1]:.2f}) GeV",
+                 f"expected <b>{G['y'][i]:.2f} ± {np.sqrt(G['y2'][i]):.2f}</b> events · {share:.0f} % of the stack · {G['n'][i]} raw MC events"]
+        for key, arr in parts:
+            s = D["samples"][key]
+            if arr[i] > 0 or len(parts) == 1:
+                lines.append(f"&nbsp;&nbsp;{key}: {arr[i]:.2f} — {s['description']}<br>&nbsp;&nbsp;&nbsp;&nbsp;{s['generator']}, σ = {s['xsec_pb']:.4g} pb, DSID {s['dsid']}")
+        rows.append("<br>".join(lines))
+    return rows
 
-page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plotlyhep — mplhep, mirrored for Plotly</title>
+def build(chan, sig_scale=1.0):
+    g = group_arrays(chan)
+    total = sum(g[k]["y"] for k in GROUP_ORDER)
+    data = np.asarray(D["data"]["counts"] if chan == "all" else D["data"]["by_channel"][chan], float)
+    traces = []
+    for grp in GROUP_ORDER:
+        G = g[grp]; y = G["y"] * (sig_scale if grp == "Higgs" else 1.0)
+        traces.append(go.Bar(x=ctr, y=y, width=width, name=grp + (f" × {sig_scale:g}" if grp == "Higgs" and sig_scale != 1 else ""),
+                             marker=dict(color=GROUP_COLOR[grp], line=dict(width=0)), customdata=hover_for(grp, G, total),
+                             hovertemplate="%{customdata}<extra></extra>", legendrank=GROUP_ORDER.index(grp)))
+    # data: black points with Poisson bars; hover shows observed vs expected
+    obs_hover = [f"<b>Data</b> ({', '.join('period ' + p for p in D['data']['periods'])}, {D['lumi_fb']:g} fb⁻¹)<br>m<sub>4ℓ</sub> ∈ [{E[i]:.2f}, {E[i+1]:.2f}) GeV<br>observed <b>{int(data[i])}</b> · expected {total[i]:.2f} (S = {g['Higgs']['y'][i]:.2f}, B = {total[i]-g['Higgs']['y'][i]:.2f})" for i in range(len(ctr))]
+    traces.append(go.Scatter(x=ctr, y=data, mode="markers", name="Data", marker=dict(color="black", size=pt2px(4)),
+                             error_y=dict(type="data", array=np.sqrt(data), thickness=pt2px(1), width=0, color="black"),
+                             customdata=obs_hover, hovertemplate="%{customdata}<extra></extra>", legendrank=10))
+    return traces
+
+fig = php.figure("ATLAS", barmode="stack", bargap=0)
+for t in build("all"): fig.add_trace(t)
+php.set_xlabel(fig, "m<sub>4ℓ</sub> [GeV]"); php.set_ylabel(fig, "Events / 3.75 GeV", ticklabel_chars=2)
+php.atlas.label(fig, "Open Data", data=True, lumi=D["lumi_fb"], com=13, loc=1)
+fig.update_layout(showlegend=True, legend=dict(x=0.98, y=0.80, xanchor="right", yanchor="top", traceorder="reversed"),
+                  hoverlabel=dict(bgcolor="white", font=dict(size=13, family="Helvetica, Arial"), align="left"),
+                  hovermode="closest", yaxis=dict(rangemode="tozero"))
+# --- controls: channel (rebuilds the traces), y scale, signal x10
+chan_traces = {c: build(c) for c in ["all", "4e", "4mu", "2e2mu"]}
+sig10 = build("all", 10.0)
+def restyle(trs): return {"y": [t.y for t in trs], "customdata": [t.customdata for t in trs], "name": [t.name for t in trs]}
+# controls live in the top margin, clear of the ATLAS label and the axes
+fig.update_layout(margin=dict(l=118, r=30, t=100, b=84), updatemenus=[
+    dict(type="dropdown", x=0.0, y=1.19, xanchor="left", yanchor="top", showactive=True, bgcolor="white", font=dict(size=13),
+         buttons=[dict(label=f"channel: {CHANNEL_LABEL[c]}", method="restyle", args=[restyle(chan_traces[c])]) for c in ["all", "4e", "4mu", "2e2mu"]]),
+    dict(type="buttons", direction="right", x=0.47, y=1.19, xanchor="left", yanchor="top", showactive=True, bgcolor="white", font=dict(size=13),
+         buttons=[dict(label="linear", method="relayout", args=[{"yaxis.type": "linear"}]), dict(label="log", method="relayout", args=[{"yaxis.type": "log"}])]),
+    dict(type="buttons", direction="right", x=0.68, y=1.19, xanchor="left", yanchor="top", showactive=True, bgcolor="white", font=dict(size=13),
+         buttons=[dict(label="signal × 1", method="restyle", args=[restyle(chan_traces["all"])]), dict(label="signal × 10", method="restyle", args=[restyle(sig10)])]),
+])
+W, H = php.figsize_px("ATLAS")            # 800 x 600: the ATLAS figure size, embedded at native pixels
+fig.update_layout(width=W, height=H)
+hzz = embed(fig, "fig-hzz4l", editable=False, persist=False, inherit_template=False, width=f"{W}px", height=f"{H}px")
+
+n_sel = {k: s["selected_raw"] for k, s in D["samples"].items()}
+page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plotlyhep — gallery</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{script_tag("CMS", transparent=True)}
+{script_tag(None)}
 {SLIDE_CSS}
 <style>
- body {{ margin: 0; font: 16px/1.5 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: #191c20; background: #fcfcfb; }}
- header {{ padding: 40px 6vw 24px; border-bottom: 1px solid rgba(0,0,0,.12); }}
- h1 {{ font-family: "TeX Gyre Heros", Helvetica, Arial, sans-serif; font-size: 40px; margin: 0 0 8px; }}
- h1 span {{ color: #1a4480; }} h2 {{ font-family: "IBM Plex Mono", Menlo, monospace; font-size: 18px; letter-spacing: .08em; text-transform: uppercase; color: #1a4480; margin: 0 0 4px; }}
- main {{ padding: 0 6vw 60px; }} section {{ padding: 32px 0; border-bottom: 1px solid rgba(0,0,0,.08); }}
- .triple {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }} @media (max-width: 1100px) {{ .triple {{ grid-template-columns: 1fr; }} }}
- figure {{ margin: 0; background: #fff; border: 1px solid rgba(0,0,0,.09); border-radius: 6px; padding: 8px; }} figcaption {{ font: 13px "IBM Plex Mono", Menlo, monospace; color: #5c636e; margin-bottom: 6px; }}
- figure img {{ width: 100%; height: auto; display: block; }} .desc {{ margin: 0 0 14px; color: #5c636e; }} .metrics {{ font: 14px "IBM Plex Mono", Menlo, monospace; color: #5c636e; margin: 12px 0 0; }}
+ body {{ margin: 0; font: 16px/1.55 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: #191c20; background: #fcfcfb; }}
+ header {{ padding: 40px 6vw 22px; border-bottom: 1px solid rgba(0,0,0,.12); }}
+ h1 {{ font-family: "TeX Gyre Heros", Helvetica, Arial, sans-serif; font-size: 40px; margin: 0 0 8px; }} h1 span {{ color: #1a4480; }}
+ h2 {{ font-family: "IBM Plex Mono", Menlo, monospace; font-size: 17px; letter-spacing: .08em; text-transform: uppercase; color: #1a4480; margin: 0 0 6px; }}
+ main {{ padding: 0 6vw 60px; max-width: 1200px; }} section {{ padding: 34px 0; border-bottom: 1px solid rgba(0,0,0,.08); }}
+ .fig {{ background: #fff; border: 1px solid rgba(0,0,0,.09); border-radius: 6px; padding: 10px; display: inline-block; max-width: 100%; overflow-x: auto; }}
+ .try {{ font: 14px "IBM Plex Mono", Menlo, monospace; color: #5c636e; margin: 10px 0 0; }}
  code {{ background: rgba(26,68,128,.07); padding: 1px 5px; border-radius: 3px; }} pre {{ background: #fff; border: 1px solid rgba(0,0,0,.09); border-radius: 6px; padding: 14px; overflow-x: auto; font-size: 14px; }}
- a {{ color: #1a4480; }}
+ a {{ color: #1a4480; }} .small {{ color: #5c636e; font-size: 14px; }}
 </style></head><body>
-<header><h1>plotlyhep <span>— mplhep, mirrored for Plotly</span></h1>
-<p>The CMS / ATLAS look of <a href="https://github.com/scikit-hep/mplhep">mplhep</a>, for Plotly figures — plus <code>from_mpl</code> / <code>to_mpl</code> conversion of existing matplotlib figures. Fidelity is a <b>pixel diff</b> against mplhep, rendered on the same 1000 × 1000 grid, rerun on every commit. Hover the live figures: each bin answers with its range and content ± error. Drag an annotation: it stays where you put it.
-<a href="https://github.com/DickyChant/plotlyhep">github.com/DickyChant/plotlyhep</a></p></header>
+<header><h1>plotlyhep <span>— gallery</span></h1>
+<p>The mplhep look for Plotly, on real open data. Every element of a plot knows what it is: hover a stacked process and it tells you which samples it is made of, how they were generated, their cross sections and what they contribute in that bin. <a href="https://github.com/DickyChant/plotlyhep">github.com/DickyChant/plotlyhep</a></p></header>
 <main>
-{''.join(rows)}
-<section id="theme">
-  <h2>one theme for the whole page</h2>
-  <p class="desc">This figure is a plain <code>go.Bar</code> built without plotlyhep. It renders in the mplhep look because the page carries the template once — <code>script_tag("CMS")</code> publishes it as <code>window.PLOTLYHEP_TEMPLATE</code> and every embedded figure inherits it. That is the deck-level “CSS” for plots; real CSS covers only what sits around the figure (transparent ground, the deck's font).</p>
-  <figure>{theme_demo}</figure>
-<pre>from plotlyhep.html import script_tag, embed, SLIDE_CSS
-head  += script_tag("CMS") + SLIDE_CSS          # once per deck
-slide += embed(fig, "plot-s12", editable=True)   # per figure: hover, draggable annotations, edits persisted</pre>
+<section id="hzz4l">
+  <h2>H → ZZ* → 4ℓ — ATLAS Open Data, 13 TeV, {D['lumi_fb']:g} fb⁻¹</h2>
+  <p>The four-lepton invariant mass after the standard selection ({D['selection']}), Higgs signal stacked on the ZZ* and reducible backgrounds, data with Poisson errors. Built from <a href="https://opendata.cern.ch/record/15005">CERN Open Data record 15005</a> with the normalisation of the ATLAS outreach framework; the same selection as ROOT's <code>df106_HiggsToFourLeptons</code> tutorial.</p>
+  <div class="fig">{hzz}</div>
+  <p class="try">try: hover a stack segment · hover a data point (observed vs S and B) · click a legend entry to hide it, double-click to isolate it · channel dropdown · log axis · signal × 10 · drag to zoom, double-click to reset</p>
+  <p class="small">Selected events: data {D['data']['selected']} · MC after selection: {', '.join(f'{k} {v}' for k, v in n_sel.items())}. Reduced once by <code>docs/make_data.py</code> to a {os.path.getsize(os.path.join(HERE,'data','hzz4l.json'))//1024} kB JSON; this page is built from that file alone.</p>
+</section>
+<section id="use">
+  <h2>use it</h2>
+<pre>import plotlyhep as php
+fig = php.figure("ATLAS", barmode="stack", bargap=0)
+fig.add_trace(go.Bar(x=centres, y=yields, width=widths, name="ZZ*", customdata=per_bin_html, hovertemplate="%{{customdata}}&lt;extra&gt;&lt;/extra&gt;"))
+php.atlas.label(fig, "Open Data", data=True, lumi=10, com=13, loc=1)
+php.set_xlabel(fig, "m&lt;sub&gt;4ℓ&lt;/sub&gt; [GeV]"); php.set_ylabel(fig, "Events / 3.75 GeV")
+
+# in an HTML deck: once per page, then per figure
+head  += php.html.script_tag("ATLAS") + php.html.SLIDE_CSS
+slide += php.html.embed(fig, "plot-s12", editable=True)      # hover, draggable annotations, edits persisted</pre>
+  <p class="small">Fidelity to mplhep is measured, not asserted: every commit renders the same figures through mplhep and plotlyhep on a 1000 × 1000 grid and diffs the pixels — see the <a href="https://github.com/DickyChant/plotlyhep/actions">pixel-diff workflow</a> and the README table.</p>
 </section>
 </main></body></html>"""
 open(os.path.join(out, "index.html"), "w").write(page)
-open(os.path.join(out, "metrics.json"), "w").write(json.dumps(metrics, indent=1))
-print("site:", os.path.join(out, "index.html"), f"({len(page)//1024} kB html, {len(os.listdir(os.path.join(out,'img')))} images)")
+print("site:", os.path.join(out, "index.html"), f"({len(page)//1024} kB)")

@@ -6,3 +6,4 @@ build/
 tests/output/
 .pytest_cache/
 site/
+site-cache/
