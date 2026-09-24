@@ -68,6 +68,11 @@ def histplot(fig: go.Figure, H, bins=None, *, yerr=None, histtype: str = "step",
                                      if err is not None else None, **hover, **kw))
         else:
             raise ValueError(f"histtype {histtype!r} not supported")
+    # stacked fills are cumulative sums drawn with fill='tozeroy': paint the tallest first so
+    # each lower layer covers the ones above it; legend keeps the given order via legendrank
+    if stack and histtype == "fill":
+        for r, t in enumerate(traces): t.update(legendrank=1000 + r)
+        traces = traces[::-1]
     for t in traces:
         t.update(**axes); fig.add_trace(t)
     if any(l is not None for l in labels):
