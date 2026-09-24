@@ -23,5 +23,15 @@
   "mean_abs_diff": 0.09,
   "frac_pixels_gt40": 0.0013,
   "ssim": 0.979
+ },
+ "annotate_from_mpl": {
+  "mean_abs_diff": 8.85,
+  "frac_pixels_gt40": 0.0462,
+  "ssim": 0.885
+ },
+ "annotate_roundtrip": {
+  "mean_abs_diff": 1.53,
+  "frac_pixels_gt40": 0.0091,
+  "ssim": 0.96
  }
 }

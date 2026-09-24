@@ -79,7 +79,28 @@ def case_convert_roundtrip():
     fig2 = to_mpl(from_mpl(fig))
     return fig, fig2
 
+def _annotated_mpl():
+    fig, ax = mpl_fig()
+    hep.histplot(MC1, BINS, label="Signal", ax=ax)
+    ax.set_xlim(0, 200); ax.set_ylim(0, 450)
+    ax.set_xlabel("m$_{jj}$ [GeV]"); ax.set_ylabel("Events")
+    ax.annotate("resonance", xy=(90, 340), xytext=(140, 400), fontsize=22, ha="center", va="center",
+                arrowprops=dict(arrowstyle="->", lw=1.5, color="black"))
+    ax.annotate("turn-on", xy=(45, 60), xytext=(30, 220), fontsize=22, ha="center", va="center",
+                arrowprops=dict(arrowstyle="-|>", lw=1.5, color="#e42536"))
+    hep.cms.label("Simulation", data=False, com=13.6, ax=ax, loc=0)
+    return fig
+
+def case_annotate_from_mpl():
+    from plotlyhep.convert import from_mpl
+    fig = _annotated_mpl(); return fig, from_mpl(fig)
+
+def case_annotate_roundtrip():
+    from plotlyhep.convert import from_mpl, to_mpl
+    fig = _annotated_mpl(); return fig, to_mpl(from_mpl(fig))
+
 CASES = {"axes_label": case_axes_label, "step_hist": case_step_hist, "inside_label": case_inside_label,
+         "annotate_from_mpl": case_annotate_from_mpl, "annotate_roundtrip": case_annotate_roundtrip,
          "convert_from_mpl": case_convert_from_mpl, "convert_roundtrip": case_convert_roundtrip}
 
 # ------------------------------------------------------------------ render + metrics

@@ -4,6 +4,19 @@ import numpy as np
 import plotly.graph_objects as go
 from ._units import pt2px
 
+def bin_hover(edges, values, err=None, name=None) -> dict:
+    """hovertemplate + customdata for a per-bin trace: '[lo, hi)  value ± err'."""
+    e = np.asarray(edges, float); v = np.asarray(values, float)
+    lo, hi = e[:-1], e[1:]
+    if err is not None:
+        cd = np.column_stack([lo, hi, v, np.asarray(err, float)])
+        tmpl = "[%{customdata[0]:g}, %{customdata[1]:g})<br>%{customdata[2]:.4g} ± %{customdata[3]:.3g}"
+    else:
+        cd = np.column_stack([lo, hi, v])
+        tmpl = "[%{customdata[0]:g}, %{customdata[1]:g})<br>%{customdata[2]:.4g}"
+    if name: tmpl = f"<b>{name}</b><br>" + tmpl
+    return dict(customdata=cd, hovertemplate=tmpl + "<extra></extra>", hoverinfo=None)
+
 def _edges(bins, n):
     bins = np.asarray(bins, dtype=float) if bins is not None else np.arange(n + 1, dtype=float)
     assert len(bins) == n + 1, "bins must be edges (len(H)+1)"
@@ -32,23 +45,26 @@ def histplot(fig: go.Figure, H, bins=None, *, yerr=None, histtype: str = "step",
     lw = pt2px(1.5 if linewidth is None else linewidth)      # mplhep step default 1.5 pt
     for h, lab, col, err in zip(Hs, labels, colors, errs):
         show = (lab is not None) if showlegend is None else showlegend
+        # hover: one entry per bin — "[lo, hi)  content ± err" — on an invisible marker at the bin centre,
+        # so the drawn outline/fill/error segments never answer the cursor themselves
+        hover = bin_hover(e, h, err, name=lab)
         if histtype in ("step", "fill"):
             x = np.concatenate([[e[0]], e, [e[-1]]]) if edges else e
             y = np.concatenate([[0.0], h, [h[-1], 0.0]]) if edges else np.concatenate([h, [h[-1]]])
             t = go.Scatter(x=x, y=y, mode="lines", line=dict(shape="hv", width=lw, color=col),
-                           name=lab or "", showlegend=show, **kw)
+                           name=lab or "", showlegend=show, hoverinfo="skip", **kw)
             if histtype == "fill":
                 t.update(fill="tozeroy", line=dict(width=0, color=col), fillcolor=col)
             traces.append(t)
-            if err is not None:
-                traces.append(go.Scatter(x=centers, y=h, mode="markers",
-                                         marker=dict(size=0.1, color=col), showlegend=False,
-                                         error_y=dict(type="data", array=err, thickness=lw, width=0, color=col)))
+            traces.append(go.Scatter(x=centers, y=h, mode="markers", name=lab or "",
+                                     marker=dict(size=0.1, color=col), showlegend=False,
+                                     error_y=dict(type="data", array=err, thickness=lw, width=0, color=col) if err is not None else None,
+                                     **hover))
         elif histtype == "errorbar":
             traces.append(go.Scatter(x=centers, y=h, mode="markers", name=lab or "", showlegend=show,
                                      marker=dict(symbol="circle", size=pt2px(3.5), color=col),   # mplhep marker "." ~ half of markersize 6 pt
                                      error_y=dict(type="data", array=err, thickness=pt2px(1), width=0, color=col)
-                                     if err is not None else None, **kw))
+                                     if err is not None else None, **hover, **kw))
         else:
             raise ValueError(f"histtype {histtype!r} not supported")
     for t in traces:

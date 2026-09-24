@@ -12,6 +12,7 @@ import re
 import numpy as np
 import plotly.graph_objects as go
 from ._units import pt2px
+from .plot import bin_hover
 
 # ----------------------------------------------------------------- text helpers
 def mathtext_to_html(s: str) -> str:
@@ -126,8 +127,12 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
             col = _rgba(ln.get_color(), ln.get_alpha())
             lab = ln.get_label(); show = not str(lab).startswith("_")
             ey = err_for.get(id(ln))
+            hov = {}
+            if ey:
+                hov = dict(customdata=np.column_stack([np.asarray(y, float), ey[0], ey[1]]),
+                           hovertemplate=(f"<b>{lab}</b><br>" if show else "") + "x = %{x:g}<br>%{customdata[0]:.4g} −%{customdata[1]:.3g} / +%{customdata[2]:.3g}<extra></extra>")
             out.add_trace(go.Scatter(x=x, y=y, mode=mode, name=lab if show else "", showlegend=show, xaxis=xs, yaxis=ys,
-                                     legendrank=rank.get(lab, 1000),
+                                     legendrank=rank.get(lab, 1000), **hov,
                                      error_y=dict(type="data", symmetric=False, array=ey[1], arrayminus=ey[0], thickness=ey[2], width=0, color=col) if ey else None,
                                      line=dict(shape=shape, width=px(ln.get_linewidth()), dash=ls, color=col),
                                      marker=dict(symbol=mk or "circle", size=px(ln.get_markersize()) * (0.5 if ln.get_marker() == "." else 1.0),
@@ -144,9 +149,13 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
                 filled = fc[3] > 0 if len(fc) == 4 else False
                 lab = p.get_label(); show = not str(lab).startswith("_")
                 out.add_trace(go.Scatter(x=xx, y=yy, mode="lines", name=lab if show else "", showlegend=show, xaxis=xs, yaxis=ys,
-                                         legendrank=rank.get(lab, 1000),
+                                         legendrank=rank.get(lab, 1000), hoverinfo="skip",
                                          line=dict(shape="hv", width=px(p.get_linewidth()) if ec[3] > 0 else 0, color=_rgba(ec)),
                                          fill="tozeroy" if filled else None, fillcolor=_rgba(fc) if filled else None))
+                # hover carrier: invisible marker per bin with "[lo, hi) content"
+                ctr = 0.5 * (np.asarray(e[1:]) + np.asarray(e[:-1]))
+                out.add_trace(go.Scatter(x=ctr, y=v, mode="markers", marker=dict(size=0.1, color=_rgba(ec)), showlegend=False,
+                                         xaxis=xs, yaxis=ys, name=lab if show else "", **bin_hover(e, v, None, name=lab if show else None)))
             elif isinstance(p, Rectangle) and p.get_width() and p.get_height():
                 bars_x.append(p.get_x() + p.get_width() / 2); bars_y.append(p.get_height()); bars_w.append(p.get_width()); bars_c.append(_rgba(p.get_facecolor()))
             elif isinstance(p, Polygon):
@@ -167,13 +176,13 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
                 segs = c.get_segments(); col = _rgba(c.get_colors()[0]) if len(c.get_colors()) else "black"
                 xx, yy = [], []
                 for s in segs: xx += [s[0][0], s[1][0], None]; yy += [s[0][1], s[1][1], None]
-                out.add_trace(go.Scatter(x=xx, y=yy, mode="lines", showlegend=False, xaxis=xs, yaxis=ys,
+                out.add_trace(go.Scatter(x=xx, y=yy, mode="lines", showlegend=False, xaxis=xs, yaxis=ys, hoverinfo="skip",
                                          line=dict(width=px(c.get_linewidths()[0]) if len(c.get_linewidths()) else px(1), color=col)))
             elif isinstance(c, PolyCollection):
                 for path in c.get_paths():
                     v = path.vertices
                     out.add_trace(go.Scatter(x=v[:, 0], y=v[:, 1], mode="lines", fill="toself", showlegend=False, xaxis=xs, yaxis=ys,
-                                             line=dict(width=0), fillcolor=_rgba(c.get_facecolor()[0])))
+                                             hoverinfo="skip", line=dict(width=0), fillcolor=_rgba(c.get_facecolor()[0])))
             elif isinstance(c, PathCollection):
                 off = c.get_offsets(); sizes = c.get_sizes(); fc = c.get_facecolor()
                 out.add_trace(go.Scatter(x=off[:, 0], y=off[:, 1], mode="markers", showlegend=not c.get_label().startswith("_"), name=c.get_label(), xaxis=xs, yaxis=ys,
@@ -187,11 +196,41 @@ def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
                 if im.origin == "upper": yc = yc[::-1]
                 out.add_trace(go.Heatmap(x=xc, y=yc, z=np.asarray(a), zmin=vmin, zmax=vmax, colorscale=[[i / 10, _rgba(cmap(i / 10))] for i in range(11)], showscale=False, xaxis=xs, yaxis=ys))
         # ---- texts: place by rendered bbox, so any transform/offset is honoured
+        from matplotlib.text import Annotation
         texts = list(ax.texts) + [ax.xaxis.label, ax.yaxis.label, ax.title]
         for t in texts:
             s = t.get_text()
             if not s: continue
             bb = t.get_window_extent(renderer); ha, va = t.get_ha(), t.get_va(); rot = t.get_rotation()
+            arrow = getattr(t, "arrow_patch", None) if isinstance(t, Annotation) else None
+            if arrow is not None and arrow.get_visible():
+                # Plotly: (x, y) is the arrow head; the text sits at (ax, ay) px from it (ay grows downward).
+                # The head is the annotation's target in its own coordinate system (the arrow path's
+                # last vertex is a CLOSEPOLY dummy for filled heads).
+                coords = t.xycoords if isinstance(t.xycoords, str) else "data"
+                tf = {"data": ax.transData, "axes fraction": ax.transAxes, "figure fraction": fig.transFigure,
+                      "axes points": None, "figure pixels": None}.get(coords, ax.transData)
+                if tf is not None:
+                    head = tf.transform(t.xy)
+                else:
+                    from matplotlib.path import Path as _P
+                    pth = arrow.get_path(); vv = arrow.get_transform().transform(pth.vertices)
+                    keep = vv[pth.codes != _P.CLOSEPOLY] if pth.codes is not None else vv
+                    cx0, cy0 = (bb.x0 + bb.x1) / 2, (bb.y0 + bb.y1) / 2
+                    head = keep[np.argmax((keep[:, 0] - cx0) ** 2 + (keep[:, 1] - cy0) ** 2)]
+                cx, cy = (bb.x0 + bb.x1) / 2, (bb.y0 + bb.y1) / 2
+                style = str(arrow.get_arrowstyle().__class__.__name__).lower()
+                shrinkB = px(getattr(arrow, "shrinkB", 2))
+                txt = mathtext_to_html(s)
+                if t.get_fontweight() in ("bold", "heavy", 700, 800, 900): txt = f"<b>{txt}</b>"
+                if t.get_fontstyle() == "italic": txt = f"<i>{txt}</i>"
+                out.add_annotation(text=txt, x=head[0] / W, y=head[1] / H, xref="paper", yref="paper",
+                                   ax=cx - head[0], ay=-(cy - head[1]), axref="pixel", ayref="pixel",
+                                   showarrow=True, arrowhead=2 if ("fancy" in style or "simple" in style or "curvefilled" in style) else 3,
+                                   arrowsize=1, arrowwidth=px(arrow.get_linewidth()), arrowcolor=_rgba(arrow.get_edgecolor()),
+                                   standoff=shrinkB,
+                                   xanchor="center", yanchor="middle", font=dict(size=px(t.get_fontsize()), color=_rgba(t.get_color())))
+                continue
             ax_x = {"left": bb.x0, "center": (bb.x0 + bb.x1) / 2, "right": bb.x1}.get(ha, bb.x0)
             ay = {"bottom": bb.y0, "baseline": bb.y0, "center": (bb.y0 + bb.y1) / 2, "top": bb.y1, "center_baseline": (bb.y0 + bb.y1) / 2}.get(va, bb.y0)
             if rot == 90:   # rotated text: anchor by the rotated box (ha applies vertically)
@@ -305,6 +344,18 @@ def to_mpl(pfig: go.Figure, *, dpi: float = 100.0):
             ax.pcolormesh(xe, ye, z, cmap="viridis", vmin=tr.zmin, vmax=tr.zmax, shading="flat")
     for a in L.annotations or []:
         if not a.text: continue
+        if a.showarrow and a.xref == "paper" and a.yref == "paper":
+            txt = html_to_mathtext(a.text)
+            style = "-|>" if (a.arrowhead or 1) in (1, 2, 4, 6) else "->"
+            fig.text  # keep figure created
+            ax0 = next(iter(axes.values()))
+            ax0.annotate(txt, xy=(a.x, a.y), xycoords="figure fraction",
+                         xytext=(pt(a.ax or 0), -pt(a.ay or 0)), textcoords="offset points",
+                         ha="center", va="center", fontsize=pt(a.font.size or L.font.size or 14),
+                         color=_mpl_color(a.font.color) or "black",
+                         arrowprops=dict(arrowstyle=style, lw=pt(a.arrowwidth or 1), color=_mpl_color(a.arrowcolor) or "black",
+                                         shrinkA=0, shrinkB=pt(a.standoff or 0)))
+            continue
         if a.xref == "paper" and a.yref == "paper":
             xs = (a.xshift or 0) / W; ys = (a.yshift or 0) / H
             txt = html_to_mathtext(a.text)
@@ -313,7 +364,8 @@ def to_mpl(pfig: go.Figure, *, dpi: float = 100.0):
                      fontsize=pt(a.font.size or L.font.size or 14), rotation=-(a.textangle or 0), fontweight=weight, fontstyle=style,
                      color=_mpl_color(a.font.color) or "black", family=fam)
     if L.showlegend:
-        ranks = {tr.name: (tr.legendrank if tr.legendrank is not None else 1000) for tr in pfig.data if tr.name}
+        ranks = {tr.name: (tr.legendrank if tr.legendrank is not None else 1000)
+                 for tr in pfig.data if tr.name and tr.showlegend is not False}
         for ax in axes.values():
             h, l = ax.get_legend_handles_labels()
             if h:

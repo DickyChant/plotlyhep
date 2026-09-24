@@ -11,6 +11,7 @@ from . import styles as style
 from .styles import template, figsize_px
 from .label import exp_text, exp_label, cms, atlas, set_xlabel, set_ylabel
 from .plot import histplot, hist2dplot
+from . import convert, html
 import plotly.graph_objects as go
 import plotly.io as pio
 
@@ -21,5 +22,5 @@ def figure(exp: str | None = None, **layout) -> go.Figure:
     return fig
 
 __all__ = ["style", "template", "figsize_px", "figure", "exp_text", "exp_label", "cms", "atlas",
-           "set_xlabel", "set_ylabel", "histplot", "hist2dplot"]
+           "set_xlabel", "set_ylabel", "histplot", "hist2dplot", "convert", "html"]
 __version__ = "0.1.0"

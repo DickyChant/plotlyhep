@@ -80,6 +80,14 @@ def template(exp: str = "CMS") -> go.layout.Template:
     )
     return go.layout.Template(layout=layout)
 
+def template_json(exp: str = "CMS", *, transparent: bool = False) -> dict:
+    """The template as plain JSON — usable from JavaScript: Plotly.newPlot(gd, data, {template: T})."""
+    t = template(exp).to_plotly_json()
+    if transparent:                                  # on a slide the skin's ground shows through
+        t["layout"]["paper_bgcolor"] = "rgba(0,0,0,0)"
+        t["layout"]["plot_bgcolor"] = "rgba(0,0,0,0)"
+    return t
+
 def register() -> None:
     for exp in ("CMS", "ATLAS"):
         pio.templates[f"hep_{exp.lower()}"] = template(exp)
