@@ -30,6 +30,33 @@ BASELINE = os.path.join(HERE, "baseline")
 FAILED = os.path.join(HERE, "output", "failed")
 
 
+def _pin_fonts():
+    """Point fontconfig (and so kaleido's Chromium) at the font files mplhep-data ships, and nothing else.
+
+    matplotlib lays text out itself from mplhep-data's TeX Gyre Heros files, so its output is the same on
+    every machine. Chromium instead takes whatever fontconfig resolves, and even two versions of the same
+    face shift top-anchored text by several pixels (the system tex-gyre 2.609 vs the bundled one moved a
+    label by ~10 px here). Pinning both stacks to the same bytes makes the baselines portable between a
+    laptop and CI. Set PLOTLYHEP_SYSTEM_FONTS=1 to skip this and see what your own machine renders."""
+    if os.environ.get("PLOTLYHEP_SYSTEM_FONTS"):
+        return
+    try:
+        import mplhep_data
+    except ImportError:
+        return
+    fonts = os.path.join(os.path.dirname(mplhep_data.__file__), "fonts")
+    cache = os.path.join(HERE, "output", "fontcache")
+    os.makedirs(cache, exist_ok=True)
+    conf = os.path.join(HERE, "output", "fonts.conf")
+    with open(conf, "w") as fh:
+        fh.write('<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n'
+                 f"<fontconfig><dir>{fonts}</dir><cachedir>{cache}</cachedir></fontconfig>\n")
+    os.environ["FONTCONFIG_FILE"] = conf          # read when kaleido launches Chromium (lazily, at the first render)
+
+
+_pin_fonts()
+
+
 def pytest_addoption(parser):
     parser.addoption("--regen-baselines", action="store_true", default=False, help="write baseline images instead of comparing")
 
@@ -50,6 +77,9 @@ def _strip_text(fig):
         if name.startswith(("xaxis", "yaxis")):
             f.layout[name].update(showticklabels=False, title=dict(text=""))
     f.update_traces(selector=dict(type="scatter"), hoverinfo="skip")
+    for t in f.data:                                   # colorbars carry tick labels too
+        if hasattr(t, "colorbar"):
+            t.update(colorbar=dict(showticklabels=False, title=dict(text="")))
     return f
 
 
@@ -68,12 +98,13 @@ def rms(a: Image.Image, b: Image.Image) -> float:
     return float(np.sqrt(np.mean((x - y) ** 2)))
 
 
-@pytest.hookimpl(hookwrapper=True)
+@pytest.hookimpl(tryfirst=True)
 def pytest_pyfunc_call(pyfuncitem):
+    """Run an image_compare test ourselves (pytest_pyfunc_call is firstresult: returning True
+    stops pytest's own call, which would run the test a second time and warn about its return)."""
     marker = pyfuncitem.get_closest_marker("image_compare")
     if marker is None:
-        yield
-        return
+        return None
     tol = marker.kwargs.get("tolerance", 4.0)
     remove_text = marker.kwargs.get("remove_text", True)
     funcargs = {name: pyfuncitem.funcargs[name] for name in pyfuncitem._fixtureinfo.argnames}
@@ -99,5 +130,4 @@ def pytest_pyfunc_call(pyfuncitem):
                 d = np.abs(np.asarray(actual, float) - np.asarray(expected, float)).astype(np.uint8)
                 Image.fromarray(255 - d).save(os.path.join(FAILED, name + "-diff.png"))
             pytest.fail(f"{name}: image RMS {err:.2f} > tolerance {tol} (see {FAILED})")
-    # the hook must not run the function again
-    outcome = yield  # noqa: F841
+    return True

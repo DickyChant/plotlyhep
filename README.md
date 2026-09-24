@@ -110,7 +110,9 @@ def test_histplot_step():
 ```
 
 `remove_text=True` strips annotations, titles, tick labels and the legend before
-rendering, so baselines test geometry rather than the machine's fonts.
+rendering, so baselines test geometry rather than the machine's fonts; the tests
+that keep text run with fontconfig pinned to the font files `mplhep-data` ships,
+which is what makes the same baselines pass on a laptop and on CI.
 `pytest --regen-baselines` rewrites them after an intentional visual change;
 failures drop actual / expected / diff images under `tests/output/failed/`.
 `CONTRIBUTING.md` lists what each test file covers; the two fidelity harnesses

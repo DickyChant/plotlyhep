@@ -30,5 +30,12 @@ The suite mirrors [mplhep's](https://github.com/scikit-hep/mplhep/tree/master/te
 | `test_root.py`, `compare_root.py` | fidelity to ROOT's tutorial output images for the gallery rebuilds |
 
 `remove_text=True` (the default) strips text before rendering so baselines depend on geometry,
-not on the fonts of the machine — the same idea as pytest-mpl's `remove_text`. Tests that must
-include text carry a larger tolerance.
+not on the fonts of the machine — the same idea as pytest-mpl's `remove_text`.
+
+Tests that keep their text (the label tests) rely on `conftest.py` pinning fontconfig to the
+font files that `mplhep-data` ships, and nothing else. matplotlib already lays text out from
+those files, so it renders the same everywhere; kaleido's Chromium takes whatever fontconfig
+offers, and two versions of the same TeX Gyre Heros moved a top-anchored label by ~10 px
+between a laptop and the CI runner. With both stacks reading the same bytes the baselines
+are portable and the pixel harness compares like with like. `PLOTLYHEP_SYSTEM_FONTS=1`
+turns the pin off when you want to see what your own machine renders.

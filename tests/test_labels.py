@@ -73,14 +73,14 @@ def test_axis_label_helpers(fig):
     assert y.textangle == -90 and y.y == 1 and y.xshift < 0                              # top end, left of the axis
 
 
-@pytest.mark.image_compare(tolerance=12, remove_text=False)
+@pytest.mark.image_compare(tolerance=6, remove_text=False)
 def test_labeltext_loc0(fig):
     fig.update_xaxes(range=[0, 10]); fig.update_yaxes(range=[0, 10])
     php.cms.label(fig, "Preliminary", data=True, lumi=138, com=13.6, loc=0)
     return fig
 
 
-@pytest.mark.image_compare(tolerance=12, remove_text=False)
+@pytest.mark.image_compare(tolerance=6, remove_text=False)
 def test_labeltext_loc2(fig):
     fig.update_xaxes(range=[0, 10]); fig.update_yaxes(range=[0, 10])
     php.cms.label(fig, "Simulation", data=False, com=13.6, loc=2)
