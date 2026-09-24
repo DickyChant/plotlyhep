@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plotlyhep"
+version = "0.1.0"
+description = "mplhep, mirrored for Plotly: experiment styles, labels and histogram helpers, pixel-checked against mplhep"
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.9"
+dependencies = ["plotly>=5.20", "numpy>=1.22"]
+
+[project.optional-dependencies]
+test = ["kaleido==0.2.1", "matplotlib>=3.8", "mplhep>=1.2", "pillow", "scikit-image", "pytest"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["plotlyhep"]

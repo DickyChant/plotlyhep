@@ -1,0 +1,27 @@
+{
+ "axes_label": {
+  "mean_abs_diff": 5.89,
+  "frac_pixels_gt40": 0.0304,
+  "ssim": 0.916
+ },
+ "step_hist": {
+  "mean_abs_diff": 8.4,
+  "frac_pixels_gt40": 0.0489,
+  "ssim": 0.88
+ },
+ "inside_label": {
+  "mean_abs_diff": 6.85,
+  "frac_pixels_gt40": 0.0363,
+  "ssim": 0.901
+ },
+ "convert_from_mpl": {
+  "mean_abs_diff": 8.95,
+  "frac_pixels_gt40": 0.0483,
+  "ssim": 0.886
+ },
+ "convert_roundtrip": {
+  "mean_abs_diff": 0.24,
+  "frac_pixels_gt40": 0.0021,
+  "ssim": 0.977
+ }
+}
