@@ -10,8 +10,9 @@ import plotly.graph_objects as go
 import plotlyhep as php
 from plotlyhep.html import script_tag, embed, SLIDE_CSS
 from plotlyhep._units import pt2px
+import root_figures
 
-out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "site"); os.makedirs(out, exist_ok=True)
+out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "site"); os.makedirs(os.path.join(out, "img"), exist_ok=True)
 D = json.load(open(os.path.join(HERE, "data", "hzz4l.json")))
 E = np.asarray(D["edges"]); ctr = 0.5 * (E[1:] + E[:-1]); width = np.diff(E)
 GROUP_ORDER = ["Z+jets, tt̄", "ZZ*", "Higgs"]                     # bottom -> top of the stack
@@ -88,7 +89,7 @@ hzz = embed(fig, "fig-hzz4l", editable=True, persist=True, inherit_template=Fals
 
 # ---------------------------------------------------------------- CMS dimuon spectrum
 DM = json.load(open(os.path.join(HERE, "data", "dimuon.json")))
-DE = np.asarray(DM["edges"]); dctr = np.sqrt(DE[1:] * DE[:-1]); dsets = list(DM["datasets"].keys())
+DE = np.asarray(DM["edges"]); dctr = np.sqrt(DE[1:] * DE[:-1]); dsets = [k for k in DM["datasets"] if DM["datasets"][k].get("edges") != "root"]
 def near_res(lo, hi):
     return [r["name"] for r in DM["resonances"] if lo <= r["mass"] < hi or abs(r["mass"] - np.sqrt(lo * hi)) < 0.02 * r["mass"]]
 def dimuon_traces(key, sign):
@@ -138,6 +139,17 @@ dfig.update_layout(updatemenus=menus)
 dimuon = embed(dfig, "fig-dimuon", editable=True, persist=True, inherit_template=False, width="900px", height="600px")
 dm_desc = " · ".join(f"{k}: {DM['datasets'][k]['description']}" for k in sorted(dsets, reverse=True))
 
+
+# ---------------------------------------------------------------- ROOT tutorial rebuilds, beside their references
+def copy_ref(name):
+    src = os.path.join(ROOT, "tests", "reference", name); dst = os.path.join(out, "img", name)
+    open(dst, "wb").write(open(src, "rb").read()); return "img/" + name
+ref102, ref106 = copy_ref("df102_NanoAODDimuonAnalysis.png"), copy_ref("df106_HiggsToFourLeptons.png")
+f102 = root_figures.dimuon_df102(scale=1.0)        # on screen the canvas is 1x: 1-px lines
+f106 = root_figures.hzz_df106()
+emb102 = embed(f102, "fig-df102", editable=True, persist=True, inherit_template=False, width="796px", height="672px")
+emb106 = embed(f106, "fig-df106", editable=True, persist=True, inherit_template=False, width="596px", height="572px")
+
 n_sel = {k: s["selected_raw"] for k, s in D["samples"].items()}
 page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plotlyhep — gallery</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -149,6 +161,8 @@ page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plo
  h1 {{ font-family: "TeX Gyre Heros", Helvetica, Arial, sans-serif; font-size: 40px; margin: 0 0 8px; }} h1 span {{ color: #1a4480; }}
  h2 {{ font-family: "IBM Plex Mono", Menlo, monospace; font-size: 17px; letter-spacing: .08em; text-transform: uppercase; color: #1a4480; margin: 0 0 6px; }}
  main {{ padding: 0 6vw 60px; max-width: 1200px; }} section {{ padding: 34px 0; border-bottom: 1px solid rgba(0,0,0,.08); }}
+ .pair {{ display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; margin: 14px 0; }} @media (max-width: 1250px) {{ .pair {{ grid-template-columns: 1fr; }} }}
+ figure {{ margin: 0; }} figcaption {{ font: 13px 'IBM Plex Mono', Menlo, monospace; color: #5c636e; margin-bottom: 6px; }} figure img {{ width: 100%; height: auto; border: 1px solid rgba(0,0,0,.09); border-radius: 6px; background: #fff; }}
  .fig {{ background: #fff; border: 1px solid rgba(0,0,0,.09); border-radius: 6px; padding: 10px; display: inline-block; max-width: 100%; overflow-x: auto; }}
  .try {{ font: 14px "IBM Plex Mono", Menlo, monospace; color: #5c636e; margin: 10px 0 0; }}
  code {{ background: rgba(26,68,128,.07); padding: 1px 5px; border-radius: 3px; }} pre {{ background: #fff; border: 1px solid rgba(0,0,0,.09); border-radius: 6px; padding: 14px; overflow-x: auto; font-size: 14px; }}
@@ -157,15 +171,24 @@ page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>plo
 <header><h1>plotlyhep <span>— gallery</span></h1>
 <p>The mplhep look for Plotly, on real open data. Every element of a plot knows what it is: hover a stacked process and it tells you which samples it is made of, how they were generated, their cross sections and what they contribute in that bin. <a href="https://github.com/DickyChant/plotlyhep">github.com/DickyChant/plotlyhep</a></p></header>
 <main>
+<section id="root">
+  <h2>the ROOT tutorial plots, rebuilt — reference on the left, plotlyhep on the right</h2>
+  <p>ROOT's <code>df102_NanoAODDimuonAnalysis</code> and <code>df106_HiggsToFourLeptons</code> tutorials draw the two canonical open-data plots. The right-hand figures are rebuilt from the tutorial sources — same selection and normalisation, same binning, canvas, fonts, label positions, colours — and compared pixel by pixel with the tutorial's own output on every commit (<a href="https://github.com/DickyChant/plotlyhep/blob/main/tests/compare_root.py">tests/compare_root.py</a>). What the rebuild adds: hover a resonance label, a bin, a stack segment or a data point.</p>
+  <div class="pair"><figure><figcaption>ROOT df102 — tutorial output (root.cern)</figcaption><img src="{ref102}" alt="df102 reference"></figure>
+       <figure><figcaption>plotlyhep — live</figcaption><div class="fig">{emb102}</div></figure></div>
+  <div class="pair"><figure><figcaption>ROOT df106 — tutorial output (root.cern)</figcaption><img src="{ref106}" alt="df106 reference"></figure>
+       <figure><figcaption>plotlyhep — live</figcaption><div class="fig">{emb106}</div></figure></div>
+  <p class="small">The 4ℓ selection is the tutorial's exact one (isolation, impact parameters, 25/15/10 GeV; ZZ × 1.3; 10 064 pb⁻¹; electron scale-factor variations for the hatched band), reduced by <code>docs/make_data_root106.py</code>; the dimuon spectrum is the tutorial's 30 000 uniform bins collapsed per pixel column the way ROOT's painter does it.</p>
+</section>
 <section id="hzz4l">
-  <h2>H → ZZ* → 4ℓ — ATLAS Open Data, 13 TeV, {D['lumi_fb']:g} fb⁻¹</h2>
+  <h2>the same data in the plotlyhep template — H → ZZ* → 4ℓ, with controls</h2>
   <p>The four-lepton invariant mass after the standard selection ({D['selection']}), Higgs signal stacked on the ZZ* and reducible backgrounds, data with Poisson errors. Built from <a href="https://opendata.cern.ch/record/15005">CERN Open Data record 15005</a> with the normalisation of the ATLAS outreach framework; the same selection as ROOT's <code>df106_HiggsToFourLeptons</code> tutorial.</p>
   <div class="fig">{hzz}</div>
   <p class="try">try: hover a stack segment · hover a data point (observed vs S and B) · channel dropdown · log axis · signal × 10 · click a legend entry to hide it. The figure is frozen; press <b>edit</b> (top right) to zoom, pan, drag the legend or move labels — your edits stay in this browser; <b>reset</b> discards them</p>
   <p class="small">Selected events: data {D['data']['selected']} · MC after selection: {', '.join(f'{k} {v}' for k, v in n_sel.items())}. Reduced once by <code>docs/make_data.py</code> to a {os.path.getsize(os.path.join(HERE,'data','hzz4l.json'))//1024} kB JSON; this page is built from that file alone.</p>
 </section>
 <section id="dimuon">
-  <h2>the dimuon spectrum — CMS Open Data</h2>
+  <h2>the same data in the plotlyhep template — the dimuon spectrum, with controls</h2>
   <p>Every opposite-sign muon pair's invariant mass on a log–log axis: three decades of QCD and electroweak physics in one histogram, from the light mesons through the charmonium and bottomonium families to the Z. Hover a peak's label to learn what it is; hover a bin for its count; zoom to a family. {dm_desc}.</p>
   <div class="fig">{dimuon}</div>
   <p class="try">try: hover the J/ψ or Υ labels · opposite- vs same-sign (no resonances in same-sign pairs: the peaks are physics, not detector artefacts) · zoom presets · frozen until you press <b>edit</b>, then drag to zoom or move the labels</p>

@@ -8,7 +8,7 @@
     php.set_xlabel(fig, "m<sub>jj</sub> [GeV]"); php.set_ylabel(fig, "Events")
 """
 from . import styles as style
-from .styles import template, figsize_px
+from .styles import template, figsize_px, root_template
 from .label import exp_text, exp_label, cms, atlas, set_xlabel, set_ylabel
 from .plot import histplot, hist2dplot
 from . import convert, html
@@ -21,6 +21,6 @@ def figure(exp: str | None = None, **layout) -> go.Figure:
     fig = go.Figure(layout=dict(template=tmpl, **layout))
     return fig
 
-__all__ = ["style", "template", "figsize_px", "figure", "exp_text", "exp_label", "cms", "atlas",
+__all__ = ["style", "template", "figsize_px", "root_template", "figure", "exp_text", "exp_label", "cms", "atlas",
            "set_xlabel", "set_ylabel", "histplot", "hist2dplot", "convert", "html"]
 __version__ = "0.1.0"

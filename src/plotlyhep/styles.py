@@ -80,6 +80,30 @@ def template(exp: str = "CMS") -> go.layout.Template:
     )
     return go.layout.Template(layout=layout)
 
+ROOT_EM = 0.90      # ROOT's SetTextSize(f) is not the em size: measured cap height = 0.65 f·H, so em ≈ 0.90 f·H
+
+def root_template(width: int = 800, height: int = 600, *, label_size: float = 0.035, title_size: float = 0.04,
+                  margins=(0.10, 0.10, 0.10, 0.10), tick_len: float = 0.03, mirror_ticks: bool = False,
+                  frame_width: float = 1.0) -> go.layout.Template:
+    """A ROOT gStyle-like template: Helvetica (font 42), text sizes as fractions of the pad
+    height like ROOT's precision-2 fonts, ticks inside on the bottom/left only (unless
+    mirror_ticks, i.e. gPad->SetTickx/y), a full frame box, no grid, margins as ROOT pad
+    fractions (left, right, top, bottom). Sizes are absolute pixels for the given canvas."""
+    l, r, t, b = margins
+    lab = ROOT_EM * label_size * height; tit = ROOT_EM * title_size * height
+    pw, ph = width * (1 - l - r), height * (1 - t - b)          # ROOT tick length is a fraction of the plot area
+    ax = lambda tl: dict(showline=True, linecolor="black", linewidth=frame_width, mirror="allticks" if mirror_ticks else True,
+                         ticks="inside", ticklen=tl, tickwidth=frame_width, tickcolor="black",
+                         minor=dict(ticks="inside", ticklen=tl / 2, tickwidth=frame_width, showgrid=False),
+                         showgrid=False, zeroline=False, tickfont=dict(size=lab), automargin=False,
+                         title=dict(font=dict(size=tit)), ticklabelposition="outside")
+    layout = go.Layout(font=dict(family="Helvetica, 'TeX Gyre Heros', Arial, sans-serif", size=lab, color="black"),
+                       paper_bgcolor="white", plot_bgcolor="white", width=width, height=height,
+                       margin=dict(l=int(l * width), r=int(r * width), t=int(t * height), b=int(b * height), pad=0),
+                       xaxis=ax(tick_len * ph), yaxis=ax(tick_len * pw), showlegend=False, hovermode="closest",
+                       colorway=["#000099", "#009900", "#990000"])
+    return go.layout.Template(layout=layout)
+
 def template_json(exp: str = "CMS", *, transparent: bool = False) -> dict:
     """The template as plain JSON — usable from JavaScript: Plotly.newPlot(gd, data, {template: T})."""
     t = template(exp).to_plotly_json()

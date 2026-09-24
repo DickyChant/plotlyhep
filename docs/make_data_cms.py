@@ -66,9 +66,16 @@ def reduce_2012(cache):
         print(f"  {n/1e6:6.1f} M events read", flush=True)
     return {"description": desc, "sqrt_s_TeV": 8, "n_events": int(n), "os": os_c.astype(int).tolist(), "ss": ss_c.astype(int).tolist()}
 
+ROOT_EDGES = np.linspace(0.25, 300.0, 30001)                     # ROOT df102: 30000 uniform bins
+
 def main(which, cache):
+    global EDGES
     out = json.load(open(OUT)) if os.path.exists(OUT) else {"edges": EDGES.tolist(), "resonances": [dict(zip(("name", "mass", "width", "what", "note"), r)) for r in RESONANCES], "datasets": {}}
-    out["datasets"][which] = reduce_2010(cache) if which == "2010" else reduce_2012(cache)
+    if which == "2012root":                                        # ROOT-tutorial binning, for the identical plot
+        EDGES = ROOT_EDGES; d = reduce_2012(cache); d["edges"] = "root"; out["root_edges"] = [0.25, 300.0, 30000]
+        out["datasets"]["2012_root"] = d; which = "2012_root"
+    else:
+        out["datasets"][which] = reduce_2010(cache) if which == "2010" else reduce_2012(cache)
     os.makedirs(os.path.dirname(OUT), exist_ok=True); json.dump(out, open(OUT, "w"))
     d = out["datasets"][which]; print(f"{which}: {d['n_events']} events, {sum(d['os'])} opposite-sign pairs in [0.25, 300] GeV -> {OUT}")
 

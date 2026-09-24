@@ -55,6 +55,27 @@ text engines), Plotly's slightly heavier line antialiasing, and legend entry
 spacing. What it is not: geometry — the axes frame, ticks, labels and
 histograms land within 2 px.
 
+## The ROOT tutorial plots, rebuilt
+
+The gallery's headline figures are ROOT's `df102_NanoAODDimuonAnalysis` and
+`df106_HiggsToFourLeptons` tutorial plots rebuilt in Plotly from the tutorial
+sources (same selection, normalisation, binning, canvas, fonts, label positions,
+colours) and compared pixel by pixel with the tutorial's own output images
+(`tests/compare_root.py`, ratchet in `tests/thresholds_root.json`):
+
+| plot | canvas | mean abs diff | pixels > 40 | SSIM |
+|---|---|---|---|---|
+| df102 dimuon spectrum (CMS Open Data, 61.5 M events) | 796 × 672 at 3× | 6.2 | 3.1 % | 0.933 |
+| df106 H → ZZ* → 4ℓ (ATLAS Open Data) | 596 × 572 | 11.8 | 6.8 % | 0.816 |
+
+Lessons that came out of it, all in `plotlyhep.root_template` / `docs/root_figures.py`:
+ROOT's `SetTextSize(f)` is not the em size (em ≈ 0.90 f·H), its "bottom"
+alignment is the baseline, tick lengths are 3 % of the plot area, NDC is the
+canvas while Plotly's `paper` is the plot area, `exponentformat="power"`
+renders tick labels ~25 % larger than explicit `10<sup>n</sup>` text, and the
+high-mass "grass" of a 30 000-bin histogram is ROOT collapsing bins per pixel
+column with empty bins drawn at the axis minimum.
+
 ## Install
 
 ```bash
