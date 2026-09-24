@@ -738,3 +738,9 @@ def to_mpl(pfig: go.Figure, *, dpi: float = 100.0):
                     fontsize=fs,
                 )
     return fig
+
+
+# ROOT <-> Plotly lives in plotlyhep.root; re-exported here beside from_mpl / to_mpl
+from .root import from_root, html_to_rootlatex, rootlatex_to_html, to_root  # noqa: E402
+
+__all__ = ["from_mpl", "from_root", "html_to_mathtext", "html_to_rootlatex", "mathtext_to_html", "rootlatex_to_html", "to_mpl", "to_root"]

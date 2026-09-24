@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0 — 2026-09-24
+
+- `convert.from_root` / `convert.to_root`: ROOT canvases, pads and objects (TH1, TH2, TGraph*, TMultiGraph, THStack, TF1, TLegend, TLatex, TLine/TBox/TArrow, title and stats boxes, divided canvases, log pads) to Plotly and back; uproot-read objects convert without ROOT; TLatex markup to HTML; a pixel test against ROOT's own painter; a PyROOT job in CI.
+- `html.embed` chips gain a `save` menu: PNG (3x), SVG, and PDF through the browser's print dialog (vector, real fonts).
+
 ## 0.1.0 — 2026-09-24
 
 First tagged version.

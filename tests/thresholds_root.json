@@ -6,5 +6,9 @@
  "df106": {
   "mean_abs_diff": 13.69,
   "ssim": 0.796
+ },
+ "from_root_canvas": {
+  "mean_abs_diff": 7.6,
+  "ssim": 0.88
  }
 }

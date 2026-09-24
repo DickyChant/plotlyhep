@@ -46,6 +46,8 @@ SLIDE_CSS = """<style>
   background: rgba(255,255,255,.92); color: #191c20; cursor: pointer; font: inherit; }
 .plotlyhep-chip button:hover { background: #fff; border-color: rgba(25,28,32,.6); }
 .plotlyhep-wrap.editing .plotlyhep-chip button.edit { background: #1a4480; color: #fff; border-color: #1a4480; }
+.plotlyhep-chip .plotlyhep-save { display: inline-flex; gap: 4px; }
+.plotlyhep-chip .plotlyhep-save[hidden] { display: none; }
 </style>"""
 
 
@@ -59,6 +61,7 @@ def embed(
     height: str = "auto",
     inherit_template: bool = True,
     frozen: bool = True,
+    download: bool = True,
 ) -> str:
     """HTML fragment: a div plus the script that draws the figure into it.
 
@@ -68,7 +71,10 @@ def embed(
     zoom) and back to "done"; "reset" discards the saved edits. editable=True keeps
     the chip; editable=False removes it. frozen=False starts in the editing state.
     inherit_template=True drops the figure's own template so the page-level
-    PLOTLYHEP_TEMPLATE (from script_tag) applies — one theme for the whole deck."""
+    PLOTLYHEP_TEMPLATE (from script_tag) applies — one theme for the whole deck.
+    download=True adds a "save" chip: PNG (3x, via Plotly.downloadImage), SVG, and
+    PDF (the figure's SVG alone on a page of its own size, through the browser's print
+    dialog: vector, the page's real fonts, every glyph). download=False removes it."""
     j = fig.to_plotly_json()
     if inherit_template:
         j["layout"].pop("template", None)
@@ -91,14 +97,17 @@ def embed(
     }
     config_frozen = {"displayModeBar": False, "responsive": True, "editable": False, "scrollZoom": False, "doubleClick": False}
     start_edit = "true" if (editable and not frozen) else "false"
-    chip = (
-        (
-            '<div class="plotlyhep-chip"><button class="edit" type="button">edit</button>'
-            '<button class="reset" type="button" hidden>reset</button></div>'
-        )
-        if editable
+    edit_btns = (
+        '<button class="edit" type="button">edit</button><button class="reset" type="button" hidden>reset</button>' if editable else ""
+    )
+    save_btns = (
+        '<button class="save" type="button">save</button><span class="plotlyhep-save" hidden>'
+        '<button type="button" data-fmt="png">PNG</button><button type="button" data-fmt="svg">SVG</button>'
+        '<button type="button" data-fmt="pdf">PDF</button></span>'
+        if download
         else ""
     )
+    chip = f'<div class="plotlyhep-chip">{edit_btns}{save_btns}</div>' if (editable or download) else ""
     persist_js = (
         f"""
       var key = 'plot-edits:' + '{div_id}';
@@ -125,15 +134,44 @@ def embed(
     return Plotly.react(gd, data, frozenLayout, editing ? configEdit : configFrozen).then(function () {{
       if (Object.keys(saved).length) Plotly.relayout(gd, saved);
       wrap.classList.toggle('editing', editing);
-      if (chip) {{ chip.querySelector('.edit').textContent = editing ? 'done' : 'edit'; chip.querySelector('.reset').hidden = !editing; }}
+      var eb = chip && chip.querySelector('.edit'), rb = chip && chip.querySelector('.reset');
+      if (eb) {{ eb.textContent = editing ? 'done' : 'edit'; rb.hidden = !editing; }}
     }});
   }}
   paint().then(function () {{
     gd.on('plotly_relayout', function (e) {{ if (editing) remember(e); }});
   }});
-  if (chip) {{
-    chip.querySelector('.edit').addEventListener('click', function () {{ editing = !editing; paint(); }});
-    chip.querySelector('.reset').addEventListener('click', function () {{ forget(); paint(); }});
+  var editBtn = chip && chip.querySelector('.edit'), resetBtn = chip && chip.querySelector('.reset');
+  if (editBtn) {{
+    editBtn.addEventListener('click', function () {{ editing = !editing; paint(); }});
+    resetBtn.addEventListener('click', function () {{ forget(); paint(); }});
+  }}
+  var saveBtn = chip && chip.querySelector('.save'), saveMenu = chip && chip.querySelector('.plotlyhep-save');
+  if (saveBtn) {{
+    saveBtn.addEventListener('click', function () {{ saveMenu.hidden = !saveMenu.hidden; }});
+    saveMenu.addEventListener('click', function (ev) {{
+      var fmt = ev.target.getAttribute && ev.target.getAttribute('data-fmt'); if (!fmt) return;
+      saveMenu.hidden = true; exportAs(fmt);
+    }});
+  }}
+  function exportAs(fmt) {{
+    var fl = gd._fullLayout, w = Math.round(fl.width), h = Math.round(fl.height), name = '{div_id}';
+    if (fmt === 'png') return Plotly.downloadImage(gd, {{format: 'png', width: w, height: h, scale: 3, filename: name}});
+    if (fmt === 'svg') return Plotly.downloadImage(gd, {{format: 'svg', width: w, height: h, scale: 1, filename: name}});
+    // PDF: the figure's SVG alone on a page of exactly its size, printed by the browser (vector, the page's own
+    // fonts, every glyph); Chrome, Firefox and Safari all offer "Save as PDF" in that dialog.
+    return Plotly.toImage(gd, {{format: 'svg', width: w, height: h, scale: 1}}).then(function (url) {{
+      var svg = decodeURIComponent(url.split(',')[1]);
+      var win = window.open('', '_blank');
+      if (!win) {{ console.warn('plotlyhep: the browser blocked the print window; saving SVG instead'); return Plotly.downloadImage(gd, {{format: 'svg', width: w, height: h, scale: 1, filename: name}}); }}
+      var fonts = Array.prototype.map.call(document.querySelectorAll('link[rel="stylesheet"], style'), function (n) {{ return n.outerHTML; }}).join('');
+      win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + name + '</title>' + fonts +
+        '<style>@page {{ size: ' + w + 'px ' + h + 'px; margin: 0; }} html, body {{ margin: 0; padding: 0; background: #fff; }} svg {{ display: block; }}</style>' +
+        '</head><body>' + svg + '</body></html>');
+      win.document.close();
+      win.addEventListener('afterprint', function () {{ win.close(); }});
+      setTimeout(function () {{ win.focus(); win.print(); }}, 400);
+    }});
   }}
 }})();
 </script>"""

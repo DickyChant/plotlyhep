@@ -18,6 +18,14 @@ php.set_ylabel(fig, "Events / 5 GeV")
 fig.show()  # interactive; fig.write_image("plot.png") via kaleido
 ```
 
+## ROOT too
+
+`plotlyhep.convert.from_root(canvas)` turns a TCanvas (or a single TH1 / TH2 / TGraph / TF1 with
+its draw option, or an uproot-read object) into the same figure Plotly-side: pad margins, the
+frame, ROOT text sizes, marker and line styles, colours and palette, legend, TLatex, title and
+stats boxes, sub-pads. `to_root(fig)` goes back. Checked by pixel diff against ROOT's own
+painter (`tests/test_root_convert.py`, run wherever PyROOT is importable).
+
 ## Ratio panels
 
 ```python

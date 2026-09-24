@@ -39,3 +39,24 @@ jobs:
         with:
           name: failed-images-${{ matrix.python-version }}
           path: tests/output
+  root:
+    # PyROOT from conda-forge: the ROOT <-> Plotly converter and its pixel test against ROOT's painter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: mamba-org/setup-micromamba@add3a49764cedee8ee24e82dfde87f5bc2914462 # v2
+        with:
+          environment-name: root
+          create-args: python=3.12 root pip
+          cache-environment: true
+      - run: pip install -e ".[test]"
+        shell: bash -el {0}
+      - run: pytest -q tests/test_rootlatex.py tests/test_root_convert.py
+        shell: bash -el {0}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: root-conversion-images
+          path: tests/output/rootconv

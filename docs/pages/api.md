@@ -45,3 +45,11 @@ experiment name filled in.
 ::: plotlyhep.convert.to_mpl
 ::: plotlyhep.convert.mathtext_to_html
 ::: plotlyhep.convert.html_to_mathtext
+
+## ROOT
+
+::: plotlyhep.root.from_root
+::: plotlyhep.root.to_root
+::: plotlyhep.root.rootlatex_to_html
+::: plotlyhep.root.html_to_rootlatex
+::: plotlyhep.root.root_color

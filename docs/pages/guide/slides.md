@@ -25,6 +25,12 @@ slide = html.embed(fig, "fig-mjj")     # a div and the script that draws into it
 - **Transparent.** `script_tag(exp, transparent=True)` makes paper and plot backgrounds
   transparent so the slide background shows through.
 
+- **Save as PNG, SVG or PDF.** The chip's `save` button offers the three: PNG at three times
+  the on-screen size through `Plotly.downloadImage`, SVG as Plotly draws it, and PDF through
+  the browser's print dialog, with the figure's SVG alone on a page of exactly its size, so
+  the PDF is vector, uses the page's real fonts and keeps every glyph (Greek, superscripts).
+  Chrome, Firefox and Safari all offer "Save as PDF" there. `download=False` removes it.
+
 `width` and `height` are CSS lengths for the container (`"100%"` and `"auto"` by default,
 `auto` keeps the figure's own aspect ratio).
 

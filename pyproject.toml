@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "plotlyhep"
-version = "0.1.0"
+version = "0.2.0"
 description = "mplhep, mirrored for Plotly: experiment styles, labels, histogram and ratio helpers, matplotlib<->Plotly conversion, pixel-checked"
 readme = "README.md"
 license = { text = "BSD-3-Clause" }

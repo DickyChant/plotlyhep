@@ -29,7 +29,7 @@ def test_embed_frozen_default():
 
 
 def test_embed_options():
-    assert 'class="plotlyhep-chip"' not in embed(_fig(), "p", editable=False)
+    assert 'class="edit"' not in embed(_fig(), "p", editable=False)  # the save chip stays, the edit button goes
     assert "var editing = true;" in embed(_fig(), "p", frozen=False)
     assert "localStorage" not in embed(_fig(), "p", persist=False)
 
@@ -49,3 +49,12 @@ def test_embed_serialises_numpy():
 
 def test_slide_css_targets_plotly_only():
     assert ".js-plotly-plot" in SLIDE_CSS and "<style>" in SLIDE_CSS
+
+
+def test_embed_download_menu():
+    h = embed(_fig(), "p")
+    assert 'data-fmt="png"' in h and 'data-fmt="svg"' in h and 'data-fmt="pdf"' in h
+    assert "Plotly.downloadImage" in h and "win.print()" in h and "@page" in h
+    assert 'class="plotlyhep-save"' not in embed(_fig(), "p", download=False)
+    assert 'class="plotlyhep-chip"' in embed(_fig(), "p", editable=False)  # the save chip stays without edit
+    assert 'class="plotlyhep-chip"' not in embed(_fig(), "p", editable=False, download=False)
