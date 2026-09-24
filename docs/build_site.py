@@ -157,7 +157,7 @@ rcat = {k: np.asarray(v, float) for k, v in DR["categories"].items()}; rnom = np
 rdata = np.asarray(DR["data"]["counts"], float)
 rfig = php.ratio_figure("ATLAS", height_ratios=(3, 1), hspace=0.05, ratio_range=(0, 2.5))
 php.histplot(rfig, [rcat["other"], rcat["zz"], rcat["higgs"]], RE, stack=True, histtype="fill", color=["#cc99ff", "#99ccff", "#990000"], label=["Other MC", "ZZ MC", "Higgs MC"])
-php.histplot(rfig, rdata, RE, yerr=True, histtype="errorbar", color="black", label="Data")
+php.histplot(rfig, rdata, RE, yerr=True, histtype="errorbar", color="black", label="Data", legendrank=0)   # last in the reversed legend
 php.ratioplot(rfig, rdata, rnom, RE, den_w2=rw2, label="Data / MC")
 rfig.update_layout(yaxis=dict(range=[0, 35]), xaxis2=dict(range=[80, 170]), legend=dict(x=0.98, y=0.98, xanchor="right", yanchor="top", traceorder="reversed"))
 php.set_ylabel(rfig, "Events / 3.75 GeV", ticklabel_chars=2); php.set_xlabel(rfig, "m<sub>4ℓ</sub> [GeV]")
