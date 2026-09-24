@@ -1,4 +1,5 @@
 """Input handling, mirroring mplhep/tests/test_inputs.py."""
+
 from __future__ import annotations
 
 import numpy as np

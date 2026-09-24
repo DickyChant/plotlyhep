@@ -1,4 +1,5 @@
 """Experiment labels, mirroring mplhep/tests/test_labels.py."""
+
 from __future__ import annotations
 
 import pytest
@@ -19,7 +20,7 @@ def test_lumi_line_variants():
     assert _lumi_line(year=2018, lumi=59.8, com=13) == "2018, 59.8 fb⁻¹ (13 TeV)"
     assert _lumi_line(com=13.6) == "(13.6 TeV)"
     assert _lumi_line(lumi=139, lumi_format="{0:.0f}", com=None) == "139 fb⁻¹"
-    assert _lumi_line() == "(13 TeV)"          # mplhep's default com
+    assert _lumi_line() == "(13 TeV)"  # mplhep's default com
     assert _lumi_line(com=None) == ""
 
 
@@ -35,11 +36,11 @@ def test_exp_text_loc(fig, loc):
     assert exp.font.size / txt.font.size == pytest.approx(SCALE_EXP)
     assert lumi.font.size / txt.font.size == pytest.approx(SCALE_LUMI)
     if loc == 0:
-        assert exp.yanchor == "bottom" and exp.y == 1 and lumi.xanchor == "right"      # above the axes
+        assert exp.yanchor == "bottom" and exp.y == 1 and lumi.xanchor == "right"  # above the axes
     if loc in (1, 2, 4):
-        assert exp.yanchor == "top" and exp.xshift > 0 and exp.yshift < 0                # inside, padded
+        assert exp.yanchor == "top" and exp.xshift > 0 and exp.yshift < 0  # inside, padded
     if loc == 4:
-        assert lumi.xanchor == "left" and lumi.yanchor == "top"                          # ATLAS style: lumi below
+        assert lumi.xanchor == "left" and lumi.yanchor == "top"  # ATLAS style: lumi below
 
 
 def test_exp_text_invalid_loc(fig):
@@ -69,19 +70,21 @@ def test_axis_label_helpers(fig):
     php.set_ylabel(fig, "Events")
     x = next(a for a in fig.layout.annotations if "jj" in a.text)
     y = next(a for a in fig.layout.annotations if a.text == "Events")
-    assert (x.xanchor, x.yanchor, x.x, x.y) == ("right", "top", 1, 0) and x.yshift < 0     # right end, below the axis
-    assert y.textangle == -90 and y.y == 1 and y.xshift < 0                              # top end, left of the axis
+    assert (x.xanchor, x.yanchor, x.x, x.y) == ("right", "top", 1, 0) and x.yshift < 0  # right end, below the axis
+    assert y.textangle == -90 and y.y == 1 and y.xshift < 0  # top end, left of the axis
 
 
 @pytest.mark.image_compare(tolerance=6, remove_text=False)
 def test_labeltext_loc0(fig):
-    fig.update_xaxes(range=[0, 10]); fig.update_yaxes(range=[0, 10])
+    fig.update_xaxes(range=[0, 10])
+    fig.update_yaxes(range=[0, 10])
     php.cms.label(fig, "Preliminary", data=True, lumi=138, com=13.6, loc=0)
     return fig
 
 
 @pytest.mark.image_compare(tolerance=6, remove_text=False)
 def test_labeltext_loc2(fig):
-    fig.update_xaxes(range=[0, 10]); fig.update_yaxes(range=[0, 10])
+    fig.update_xaxes(range=[0, 10])
+    fig.update_yaxes(range=[0, 10])
     php.cms.label(fig, "Simulation", data=False, com=13.6, loc=2)
     return fig

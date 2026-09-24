@@ -7,8 +7,14 @@ pip install -e ".[dev]"
 pre-commit install            # ruff on every commit
 pytest                        # the whole suite (needs kaleido 0.2.1, which bundles Chromium)
 pytest --regen-baselines      # after an intentional visual change: regenerate tests/baseline and commit it
-nox -s lint tests             # what CI runs
+nox                           # lint (ruff, ruff format, mypy, codespell) + tests, what CI runs
+pipx run 'repo-review[cli]' --package sp-repo-review .   # scikit-hep conformance report
 ```
+
+The scikit-hep checks are all green except the optional ones we chose not to adopt
+(mypy strict mode, a Markdown formatter, a type checker inside pre-commit); `convert.py`
+is excluded from mypy until matplotlib's dynamic getters are typed. GitHub Actions
+are hash-pinned (dependabot keeps them fresh) and pass zizmor.
 
 ## How the tests are organised
 

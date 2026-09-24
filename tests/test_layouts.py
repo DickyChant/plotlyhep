@@ -1,4 +1,5 @@
 """Ratio panels and gridspec geometry, mirroring mplhep's test_layouts / test_styles_ratio_plot."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -12,10 +13,12 @@ from helpers import BINS, DATA, MC1, traces
 def test_gridspec_domains_match_matplotlib(ratios, hspace):
     """our domains are matplotlib's GridSpec positions, expressed in the plot area"""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     from plotlyhep._units import SUBPLOT
+
     fig, axes = plt.subplots(len(ratios), 1, gridspec_kw={"height_ratios": list(ratios), "hspace": hspace})
     doms = php.gridspec_domains(ratios, hspace)
     total = SUBPLOT["top"] - SUBPLOT["bottom"]
@@ -29,15 +32,16 @@ def test_gridspec_domains_match_matplotlib(ratios, hspace):
 def test_ratio_figure_axes():
     fig = php.ratio_figure("CMS", ratio_range=(0.5, 1.5), ratio_title="Data / MC")
     L = fig.layout
-    assert L.xaxis.showticklabels is False and L.xaxis.matches == "x2"          # shared x, labels only below
-    assert L.yaxis.domain[0] > L.yaxis2.domain[1]                              # main panel above the ratio panel
+    assert L.xaxis.showticklabels is False and L.xaxis.matches == "x2"  # shared x, labels only below
+    assert L.yaxis.domain[0] > L.yaxis2.domain[1]  # main panel above the ratio panel
     assert list(L.yaxis2.range) == [0.5, 1.5] and L.yaxis2.title.text == "Data / MC"
-    assert any(s.type == "line" and s.y0 == 1 for s in L.shapes)               # reference line at 1
+    assert any(s.type == "line" and s.y0 == 1 for s in L.shapes)  # reference line at 1
 
 
 def test_ratioplot_values():
     fig = php.ratio_figure("CMS")
-    mc = MC1.copy(); mc[3] = 0.0                                              # an empty denominator bin
+    mc = MC1.copy()
+    mc[3] = 0.0  # an empty denominator bin
     php.ratioplot(fig, DATA, mc, BINS, den_w2=mc, band=True)
     pts = traces(fig, mode="markers", yaxis="y2")[0]
     r = np.asarray(pts.y, float)

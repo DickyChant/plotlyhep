@@ -1,4 +1,5 @@
 """histplot / hist2dplot, mirroring mplhep/tests/test_basic.py."""
+
 from __future__ import annotations
 
 import numpy as np

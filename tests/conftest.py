@@ -14,6 +14,7 @@ figures with ``@pytest.mark.image_compare(tolerance=..., remove_text=...)``:
 * ``pytest --regen-baselines`` writes the baselines; failures save actual / expected / diff
   images under ``tests/output/failed/``.
 """
+
 from __future__ import annotations
 
 import io
@@ -49,9 +50,11 @@ def _pin_fonts():
     os.makedirs(cache, exist_ok=True)
     conf = os.path.join(HERE, "output", "fonts.conf")
     with open(conf, "w") as fh:
-        fh.write('<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n'
-                 f"<fontconfig><dir>{fonts}</dir><cachedir>{cache}</cachedir></fontconfig>\n")
-    os.environ["FONTCONFIG_FILE"] = conf          # read when kaleido launches Chromium (lazily, at the first render)
+        fh.write(
+            '<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n'
+            f"<fontconfig><dir>{fonts}</dir><cachedir>{cache}</cachedir></fontconfig>\n"
+        )
+    os.environ["FONTCONFIG_FILE"] = conf  # read when kaleido launches Chromium (lazily, at the first render)
 
 
 _pin_fonts()
@@ -62,7 +65,9 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "image_compare(tolerance=4, remove_text=True): compare the returned Plotly figure with tests/baseline/<name>.png")
+    config.addinivalue_line(
+        "markers", "image_compare(tolerance=4, remove_text=True): compare the returned Plotly figure with tests/baseline/<name>.png"
+    )
     config.addinivalue_line("markers", "render: needs kaleido (image rendering)")
     config.addinivalue_line("markers", "slow: takes more than a few seconds")
 
@@ -77,7 +82,7 @@ def _strip_text(fig):
         if name.startswith(("xaxis", "yaxis")):
             f.layout[name].update(showticklabels=False, title=dict(text=""))
     f.update_traces(selector=dict(type="scatter"), hoverinfo="skip")
-    for t in f.data:                                   # colorbars carry tick labels too
+    for t in f.data:  # colorbars carry tick labels too
         if hasattr(t, "colorbar"):
             t.update(colorbar=dict(showticklabels=False, title=dict(text="")))
     return f

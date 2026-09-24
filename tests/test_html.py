@@ -1,4 +1,5 @@
 """HTML embedding for slides: frozen figures, the edit chip, page-level template."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -23,8 +24,8 @@ def test_script_tag_publishes_template():
 def test_embed_frozen_default():
     h = embed(_fig(), "plot-1")
     assert 'id="plot-1"' in h and "plotlyhep-chip" in h and "var editing = false;" in h
-    assert '"editable": false' in h and '"scrollZoom": false' in h            # frozen config
-    assert "plot-edits:" in h                                                  # persisted edits
+    assert '"editable": false' in h and '"scrollZoom": false' in h  # frozen config
+    assert "plot-edits:" in h  # persisted edits
 
 
 def test_embed_options():
@@ -36,7 +37,7 @@ def test_embed_options():
 def test_embed_inherits_page_template():
     h = embed(_fig(), "p", inherit_template=True)
     layout_js = h.split("var data")[1].split("var configEdit")[0]
-    assert '"template"' not in layout_js                                        # dropped, so the page theme applies
+    assert '"template"' not in layout_js  # dropped, so the page theme applies
     assert '"template"' in embed(_fig(), "p", inherit_template=False)
 
 

@@ -9,6 +9,7 @@ and the axis titles in the browser; every change is stored in localStorage under
 plot-edits:<div_id> and re-applied on load, so a deck reviewed in the browser keeps
 its adjusted annotations. Under navigator.webdriver (the PDF export) nothing is
 interactive and the stored edits are still applied, so the export shows them."""
+
 from __future__ import annotations
 
 import json
@@ -19,14 +20,18 @@ from .styles import template_json
 
 PLOTLY_JS = "https://cdn.plot.ly/plotly-2.35.2.min.js"
 
+
 def script_tag(exp: str | None = "CMS", *, transparent: bool = True) -> str:
     """plotly.js once per deck, plus the experiment template as a page-level theme:
     every figure embedded afterwards (by embed() or by hand) renders with the mplhep look
     unless it carries its own template. This is the deck-level "CSS" for plots."""
     tag = f'<script src="{PLOTLY_JS}" charset="utf-8"></script>'
     if exp:
-        tag += f"\n<script>window.PLOTLYHEP_TEMPLATE = {json.dumps(template_json(exp, transparent=transparent), cls=_NumpyEncoder)};</script>"
+        tag += (
+            f"\n<script>window.PLOTLYHEP_TEMPLATE = {json.dumps(template_json(exp, transparent=transparent), cls=_NumpyEncoder)};</script>"
+        )
     return tag
+
 
 SLIDE_CSS = """<style>
 /* plots on slides: transparent ground, the skin's font, no stray scrollbars */
@@ -43,9 +48,18 @@ SLIDE_CSS = """<style>
 .plotlyhep-wrap.editing .plotlyhep-chip button.edit { background: #1a4480; color: #fff; border-color: #1a4480; }
 </style>"""
 
-def embed(fig: go.Figure, div_id: str, *, editable: bool = True, persist: bool = True,
-          width: str = "100%", height: str = "auto", inherit_template: bool = True,
-          frozen: bool = True) -> str:
+
+def embed(
+    fig: go.Figure,
+    div_id: str,
+    *,
+    editable: bool = True,
+    persist: bool = True,
+    width: str = "100%",
+    height: str = "auto",
+    inherit_template: bool = True,
+    frozen: bool = True,
+) -> str:
     """HTML fragment: a div plus the script that draws the figure into it.
 
     frozen=True (default): the figure behaves like a picture — hover and its own
@@ -56,22 +70,45 @@ def embed(fig: go.Figure, div_id: str, *, editable: bool = True, persist: bool =
     inherit_template=True drops the figure's own template so the page-level
     PLOTLYHEP_TEMPLATE (from script_tag) applies — one theme for the whole deck."""
     j = fig.to_plotly_json()
-    if inherit_template: j["layout"].pop("template", None)
+    if inherit_template:
+        j["layout"].pop("template", None)
     data = json.dumps(j["data"], cls=_NumpyEncoder)
     layout = json.dumps(j["layout"], cls=_NumpyEncoder)
-    config_edit = {"displayModeBar": True, "displaylogo": False, "responsive": True, "editable": True, "scrollZoom": True,
-                   "edits": {"annotationPosition": True, "annotationTail": True, "annotationText": True,
-                             "legendPosition": True, "axisTitleText": True, "titleText": True}}
+    config_edit = {
+        "displayModeBar": True,
+        "displaylogo": False,
+        "responsive": True,
+        "editable": True,
+        "scrollZoom": True,
+        "edits": {
+            "annotationPosition": True,
+            "annotationTail": True,
+            "annotationText": True,
+            "legendPosition": True,
+            "axisTitleText": True,
+            "titleText": True,
+        },
+    }
     config_frozen = {"displayModeBar": False, "responsive": True, "editable": False, "scrollZoom": False, "doubleClick": False}
     start_edit = "true" if (editable and not frozen) else "false"
-    chip = ('<div class="plotlyhep-chip"><button class="edit" type="button">edit</button>'
-            '<button class="reset" type="button" hidden>reset</button></div>') if editable else ""
-    persist_js = f"""
+    chip = (
+        (
+            '<div class="plotlyhep-chip"><button class="edit" type="button">edit</button>'
+            '<button class="reset" type="button" hidden>reset</button></div>'
+        )
+        if editable
+        else ""
+    )
+    persist_js = (
+        f"""
       var key = 'plot-edits:' + '{div_id}';
       var saved = {{}}; try {{ saved = JSON.parse(localStorage.getItem(key) || '{{}}'); }} catch (e) {{}}
       function remember(e) {{ Object.assign(saved, e); try {{ localStorage.setItem(key, JSON.stringify(saved)); }} catch (err) {{}} }}
-      function forget() {{ saved = {{}}; try {{ localStorage.removeItem(key); }} catch (err) {{}} }}""" if persist else """
+      function forget() {{ saved = {{}}; try {{ localStorage.removeItem(key); }} catch (err) {{}} }}"""
+        if persist
+        else """
       var saved = {}; function remember(e) { Object.assign(saved, e); } function forget() { saved = {}; }"""
+    )
     return f"""<div class="plotlyhep-wrap" style="width:{width};"><div id="{div_id}" style="width:100%; height:{height};"></div>{chip}</div>
 <script>
 (function () {{
@@ -101,13 +138,18 @@ def embed(fig: go.Figure, div_id: str, *, editable: bool = True, persist: bool =
 }})();
 </script>"""
 
+
 class _NumpyEncoder(json.JSONEncoder):
     def default(self, o):
         try:
             import numpy as np
-            if isinstance(o, np.ndarray): return o.tolist()
-            if isinstance(o, (np.integer,)): return int(o)
-            if isinstance(o, (np.floating,)): return float(o)
+
+            if isinstance(o, np.ndarray):
+                return o.tolist()
+            if isinstance(o, (np.integer,)):
+                return int(o)
+            if isinstance(o, (np.floating,)):
+                return float(o)
         except ImportError:
             pass
         return super().default(o)

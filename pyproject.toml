@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -45,11 +45,31 @@ packages = ["plotlyhep"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = ["-ra", "--strict-markers"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
 testpaths = ["tests"]
 python_files = "test*.py"
 log_level = "INFO"
 filterwarnings = ["ignore::DeprecationWarning:kaleido", "ignore::DeprecationWarning:plotly"]
+
+[dependency-groups]
+dev = ["plotlyhep[test]", "ruff", "mypy", "nox", "pre-commit", "codespell"]
+
+[tool.mypy]
+files = ["src"]
+warn_unused_configs = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+check_untyped_defs = true
+ignore_missing_imports = true      # plotly, mplhep and kaleido ship no stubs
+
+[[tool.mypy.overrides]]
+module = "plotlyhep.convert"      # walks matplotlib's artist tree; its dynamic getters do not type-check yet
+ignore_errors = true
+
+[tool.codespell]
+skip = "*.json,*.png,*.svg,./site,./.venv,./tests/output,*.egg-info,./.git"
+ignore-words-list = "hist,ans,ot,nd,te,heros,doubleclick,slac"
 
 [tool.ruff]
 line-length = 140

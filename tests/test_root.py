@@ -1,4 +1,5 @@
 """Ratchet on the ROOT-tutorial rebuilds vs the tutorial's own output images."""
+
 import json
 import os
 
@@ -8,6 +9,7 @@ from compare_root import CASES, run
 
 TH = json.load(open(os.path.join(os.path.dirname(__file__), "thresholds_root.json")))
 RES = run()
+
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_root_rebuild(name):

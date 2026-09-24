@@ -1,12 +1,13 @@
 """plotlyhep — mplhep, mirrored for Plotly.
 
-    import plotlyhep as php
-    php.style.use("CMS")                 # default template for new figures
-    fig = php.figure()                   # go.Figure at the mplhep figure size
-    php.histplot(fig, H, bins, yerr=True, label="Data", histtype="errorbar")
-    php.cms.label(fig, "Preliminary", lumi=138, com=13.6, loc=0)
-    php.set_xlabel(fig, "m<sub>jj</sub> [GeV]"); php.set_ylabel(fig, "Events")
+import plotlyhep as php
+php.style.use("CMS")                 # default template for new figures
+fig = php.figure()                   # go.Figure at the mplhep figure size
+php.histplot(fig, H, bins, yerr=True, label="Data", histtype="errorbar")
+php.cms.label(fig, "Preliminary", lumi=138, com=13.6, loc=0)
+php.set_xlabel(fig, "m<sub>jj</sub> [GeV]"); php.set_ylabel(fig, "Events")
 """
+
 import plotly.graph_objects as go
 import plotly.io as pio
 
@@ -23,6 +24,7 @@ def figure(exp: str | None = None, **layout) -> go.Figure:
     tmpl = f"hep_{exp.lower()}" if exp else pio.templates.default
     fig = go.Figure(layout=dict(template=tmpl, **layout))
     return fig
+
 
 __all__ = [
     "atlas",

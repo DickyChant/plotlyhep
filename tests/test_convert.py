@@ -1,4 +1,5 @@
 """matplotlib <-> Plotly conversion."""
+
 from __future__ import annotations
 
 import matplotlib
@@ -26,13 +27,18 @@ def test_html_to_mathtext():
 @pytest.fixture
 def mpl_figure():
     import mplhep as hep
+
     hep.style.use("CMS")
     fig, ax = plt.subplots(figsize=(10, 10), dpi=100)
     hep.histplot(MC1, BINS, label="MC", ax=ax)
     ax.errorbar(0.5 * (BINS[1:] + BINS[:-1]), DATA, yerr=np.sqrt(DATA), fmt=".", color="black", label="Data")
     ax.plot([0, 200], [100, 300], "--", color="red", label="line")
     ax.annotate("peak", xy=(90, 340), xytext=(140, 400), arrowprops=dict(arrowstyle="->"))
-    ax.set_xlim(0, 200); ax.set_ylim(0, 450); ax.set_xlabel("m$_{jj}$ [GeV]"); ax.set_ylabel("Events"); ax.legend()
+    ax.set_xlim(0, 200)
+    ax.set_ylim(0, 450)
+    ax.set_xlabel("m$_{jj}$ [GeV]")
+    ax.set_ylabel("Events")
+    ax.legend()
     yield fig
     plt.close(fig)
 
@@ -80,6 +86,7 @@ def test_roundtrip_data(mpl_figure):
 
 def test_to_mpl_bar_and_heatmap():
     import plotly.graph_objects as go
+
     p = go.Figure(layout=dict(width=600, height=400, xaxis=dict(range=[0, 3]), yaxis=dict(range=[0, 5])))
     p.add_trace(go.Bar(x=[0.5, 1.5, 2.5], y=[1, 4, 2], width=[1, 1, 1], marker=dict(color="rgba(0,0,255,1)")))
     p.add_trace(go.Heatmap(x=[0.5, 1.5, 2.5], y=[0.5, 1.5], z=[[1, 2, 3], [4, 5, 6]]))

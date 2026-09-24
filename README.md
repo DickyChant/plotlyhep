@@ -8,21 +8,23 @@ look. `plotlyhep` gives Plotly the same look — and proves it with pixels.
 ```python
 import numpy as np, plotlyhep as php
 
-php.style.use("CMS")                       # Plotly template built from mplhep's own rcParams
-fig = php.figure()                         # 10 in x 10 in at 100 dpi, like mplhep's CMS figsize
-php.histplot(fig, [sig, bkg], bins, label=["Signal", "Background"])          # mplhep-style steps
+php.style.use("CMS")  # Plotly template built from mplhep's own rcParams
+fig = php.figure()  # 10 in x 10 in at 100 dpi, like mplhep's CMS figsize
+php.histplot(fig, [sig, bkg], bins, label=["Signal", "Background"])  # mplhep-style steps
 php.histplot(fig, data, bins, yerr=True, histtype="errorbar", color="black", label="Data")
-php.cms.label(fig, "Preliminary", data=True, lumi=138, com=13.6, loc=0)      # CMS Preliminary  138 fb⁻¹ (13.6 TeV)
-php.set_xlabel(fig, "m<sub>jj</sub> [GeV]"); php.set_ylabel(fig, "Events / 5 GeV")
-fig.show()                                 # interactive; fig.write_image("plot.png") via kaleido
+php.cms.label(fig, "Preliminary", data=True, lumi=138, com=13.6, loc=0)  # CMS Preliminary  138 fb⁻¹ (13.6 TeV)
+php.set_xlabel(fig, "m<sub>jj</sub> [GeV]")
+php.set_ylabel(fig, "Events / 5 GeV")
+fig.show()  # interactive; fig.write_image("plot.png") via kaleido
 ```
 
 ## Ratio panels
 
 ```python
-fig = php.ratio_figure("CMS", height_ratios=(3, 1), hspace=0.05)   # matplotlib GridSpec geometry, shared x
-php.histplot(fig, mc, bins, label="MC"); php.histplot(fig, data, bins, yerr=True, histtype="errorbar", color="black", label="Data")
-php.ratioplot(fig, data, mc, bins, den_w2=mc_w2)                    # data/MC ± err, MC stat. band, dashed line at 1
+fig = php.ratio_figure("CMS", height_ratios=(3, 1), hspace=0.05)  # matplotlib GridSpec geometry, shared x
+php.histplot(fig, mc, bins, label="MC")
+php.histplot(fig, data, bins, yerr=True, histtype="errorbar", color="black", label="Data")
+php.ratioplot(fig, data, mc, bins, den_w2=mc_w2)  # data/MC ± err, MC stat. band, dashed line at 1
 ```
 
 ## Two ways in
@@ -34,8 +36,9 @@ php.ratioplot(fig, data, mc, bins, den_w2=mc_w2)                    # data/MC ±
 
 ```python
 from plotlyhep.convert import from_mpl, to_mpl
-pfig = from_mpl(mpl_fig)          # matplotlib.figure.Figure -> plotly.graph_objects.Figure
-mfig = to_mpl(pfig)               # and back
+
+pfig = from_mpl(mpl_fig)  # matplotlib.figure.Figure -> plotly.graph_objects.Figure
+mfig = to_mpl(pfig)  # and back
 ```
 
 ## Ground truth is a pixel diff
@@ -106,7 +109,7 @@ plotlyhep has an equivalent marker in `tests/conftest.py`:
 def test_histplot_step():
     fig = php.figure()
     php.histplot(fig, [h1, h2], bins, label=["a", "b"])
-    return fig          # rendered with kaleido, RMS-compared with tests/baseline/test_histplot_step.png
+    return fig  # rendered with kaleido, RMS-compared with tests/baseline/test_histplot_step.png
 ```
 
 `remove_text=True` strips annotations, titles, tick labels and the legend before
