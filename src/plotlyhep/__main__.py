@@ -1,7 +1,11 @@
 """python -m plotlyhep export-templates <dir>   -> hep_cms.json, hep_atlas.json (opaque and transparent)"""
-import json, os, sys
-from .styles import template_json
+import json
+import os
+import sys
+
 from .html import _NumpyEncoder
+from .styles import template_json
+
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv

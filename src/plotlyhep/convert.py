@@ -8,11 +8,14 @@ to_mpl(fig)    — the reverse for the common Plotly trace types.
 
 Both are checked by the pixel-diff harness in tests/ against the original render."""
 from __future__ import annotations
+
 import re
+
 import numpy as np
 import plotly.graph_objects as go
-from ._units import pt2px
+
 from .plot import bin_hover
+
 
 # ----------------------------------------------------------------- text helpers
 def mathtext_to_html(s: str) -> str:
@@ -49,10 +52,9 @@ _MARK = {"o": "circle", ".": "circle", "s": "square", "^": "triangle-up", "v": "
 # ----------------------------------------------------------------- from_mpl
 def from_mpl(fig, *, dpi: float | None = None) -> go.Figure:
     import matplotlib
-    from matplotlib.lines import Line2D
-    from matplotlib.patches import StepPatch, Rectangle, Polygon
-    from matplotlib.collections import PathCollection, PolyCollection, LineCollection, QuadMesh
+    from matplotlib.collections import LineCollection, PathCollection, PolyCollection, QuadMesh
     from matplotlib.image import AxesImage
+    from matplotlib.patches import Polygon, Rectangle, StepPatch
     dpi = dpi or fig.dpi
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
@@ -347,7 +349,6 @@ def to_mpl(pfig: go.Figure, *, dpi: float = 100.0):
         if a.showarrow and a.xref == "paper" and a.yref == "paper":
             txt = html_to_mathtext(a.text)
             style = "-|>" if (a.arrowhead or 1) in (1, 2, 4, 6) else "->"
-            fig.text  # keep figure created
             ax0 = next(iter(axes.values()))
             ax0.annotate(txt, xy=(a.x, a.y), xycoords="figure fraction",
                          xytext=(pt(a.ax or 0), -pt(a.ay or 0)), textcoords="offset points",

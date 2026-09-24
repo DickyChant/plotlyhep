@@ -1,8 +1,11 @@
 """Histogram helpers mirroring mplhep.histplot / hist2dplot semantics."""
 from __future__ import annotations
+
 import numpy as np
 import plotly.graph_objects as go
+
 from ._units import pt2px
+
 
 def bin_hover(edges, values, err=None, name=None) -> dict:
     """hovertemplate + customdata for a per-bin trace: '[lo, hi)  value ± err'."""
@@ -28,6 +31,8 @@ def histplot(fig: go.Figure, H, bins=None, *, yerr=None, histtype: str = "step",
     """Add one or several histograms. H: 1D array or list of arrays (same bins).
     histtype: 'step' (mplhep default, stairs with edges to zero), 'fill', 'errorbar'.
     yerr: True -> sqrt(H), or an array / list of arrays."""
+    if isinstance(H, (list, tuple)) and len(H) and np.ndim(H[0]) == 0:   # a plain list of counts is ONE histogram
+        H = [np.asarray(H, dtype=float)]
     Hs = [np.asarray(h, dtype=float) for h in (H if isinstance(H, (list, tuple)) else [H])]
     n = len(Hs[0]); e = _edges(bins, n); centers = 0.5 * (e[1:] + e[:-1]); widths = np.diff(e)
     labels = label if isinstance(label, (list, tuple)) else [label] * len(Hs)

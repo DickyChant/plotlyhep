@@ -2,15 +2,21 @@
     python docs/build_site.py site/
 Reads docs/data/hzz4l.json (made once by docs/make_data.py); no network needed."""
 from __future__ import annotations
-import json, os, sys
+
+import json
+import os
+import sys
+
 import numpy as np
+
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 import plotly.graph_objects as go
-import plotlyhep as php
-from plotlyhep.html import script_tag, embed, SLIDE_CSS
-from plotlyhep._units import pt2px
 import root_figures
+
+import plotlyhep as php
+from plotlyhep._units import pt2px
+from plotlyhep.html import SLIDE_CSS, embed, script_tag
 
 out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "site"); os.makedirs(os.path.join(out, "img"), exist_ok=True)
 D = json.load(open(os.path.join(HERE, "data", "hzz4l.json")))
@@ -168,6 +174,7 @@ ratio_emb = embed(rfig, "fig-ratio", editable=True, persist=True, inherit_templa
 # ---------------------------------------------------------------- editor: figures + templates as JSON, page copied over
 from plotlyhep.html import _NumpyEncoder
 from plotlyhep.styles import template_json
+
 ed = os.path.join(out, "editor"); os.makedirs(os.path.join(ed, "figures"), exist_ok=True); os.makedirs(os.path.join(ed, "templates"), exist_ok=True)
 manifest = []
 for keyname, title, figobj in (("df102", "ROOT df102 — CMS dimuon spectrum (rebuild)", f102), ("df106", "ROOT df106 — ATLAS H→4ℓ (rebuild)", f106),

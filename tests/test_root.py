@@ -1,6 +1,11 @@
 """Ratchet on the ROOT-tutorial rebuilds vs the tutorial's own output images."""
-import json, os, pytest
-from compare_root import run, CASES
+import json
+import os
+
+import pytest
+
+from compare_root import CASES, run
+
 TH = json.load(open(os.path.join(os.path.dirname(__file__), "thresholds_root.json")))
 RES = run()
 

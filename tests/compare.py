@@ -4,16 +4,25 @@ rendered to identical pixel grids (10 in x 10 in at 100 dpi = 1000 x 1000), comp
     python tests/compare.py            # writes tests/output/<case>_{mpl,plotly,diff,side}.png + metrics.json
 """
 from __future__ import annotations
-import io, json, os, sys
+
+import io
+import json
+import os
+import sys
+
 import numpy as np
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-import matplotlib; matplotlib.use("Agg")
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import mplhep as hep
+import plotly.graph_objects as go
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
+
 import plotlyhep as php
-import plotly.graph_objects as go
 
 OUT = os.path.join(os.path.dirname(__file__), "output"); os.makedirs(OUT, exist_ok=True)
 rng = np.random.default_rng(7)

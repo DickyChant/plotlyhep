@@ -7,14 +7,16 @@
     php.cms.label(fig, "Preliminary", lumi=138, com=13.6, loc=0)
     php.set_xlabel(fig, "m<sub>jj</sub> [GeV]"); php.set_ylabel(fig, "Events")
 """
-from . import styles as style
-from .styles import template, figsize_px, root_template
-from .label import exp_text, exp_label, cms, atlas, set_xlabel, set_ylabel
-from .plot import histplot, hist2dplot
-from .ratio import ratio_figure, ratioplot, gridspec_domains
-from . import convert, html
 import plotly.graph_objects as go
 import plotly.io as pio
+
+from . import convert, html
+from . import styles as style
+from .label import atlas, cms, exp_label, exp_text, set_xlabel, set_ylabel
+from .plot import hist2dplot, histplot
+from .ratio import gridspec_domains, ratio_figure, ratioplot
+from .styles import figsize_px, root_template, template
+
 
 def figure(exp: str | None = None, **layout) -> go.Figure:
     """A figure using the experiment template (or the current default)."""
@@ -22,6 +24,24 @@ def figure(exp: str | None = None, **layout) -> go.Figure:
     fig = go.Figure(layout=dict(template=tmpl, **layout))
     return fig
 
-__all__ = ["style", "template", "figsize_px", "root_template", "figure", "exp_text", "exp_label", "cms", "atlas",
-           "set_xlabel", "set_ylabel", "histplot", "hist2dplot", "ratio_figure", "ratioplot", "gridspec_domains", "convert", "html"]
+__all__ = [
+    "atlas",
+    "cms",
+    "convert",
+    "exp_label",
+    "exp_text",
+    "figsize_px",
+    "figure",
+    "gridspec_domains",
+    "hist2dplot",
+    "histplot",
+    "html",
+    "ratio_figure",
+    "ratioplot",
+    "root_template",
+    "set_xlabel",
+    "set_ylabel",
+    "style",
+    "template",
+]
 __version__ = "0.1.0"

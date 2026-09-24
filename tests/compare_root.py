@@ -4,13 +4,20 @@
     python tests/compare_root.py      -> tests/output/root_<case>_{ours,side,diff}.png + metrics
 """
 from __future__ import annotations
-import io, json, os, sys
+
+import io
+import json
+import os
+import sys
+
 import numpy as np
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
+
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
 sys.path[:0] = [os.path.join(ROOT, "src"), os.path.join(ROOT, "docs")]
 import root_figures
+
 OUT = os.path.join(HERE, "output"); os.makedirs(OUT, exist_ok=True)
 CASES = {"df102": (root_figures.dimuon_df102, "df102_NanoAODDimuonAnalysis.png", 3),
          "df106": (root_figures.hzz_df106, "df106_HiggsToFourLeptons.png", 1)}

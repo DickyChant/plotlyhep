@@ -1,7 +1,12 @@
 """Hover carries the physics: bin range and content ± error, and decorative traces stay silent."""
-import os, sys, numpy as np
+import os
+import sys
+
+import numpy as np
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import plotlyhep as php
+
 
 def test_histplot_hover():
     fig = php.figure("CMS"); bins = np.array([0., 10., 20.]); H = np.array([4., 9.])
@@ -17,8 +22,10 @@ def test_step_outline_is_silent_and_carrier_answers():
     assert outline.hoverinfo == "skip" and carrier.hovertemplate and carrier.marker.size == 0.1
 
 def test_from_mpl_hover():
-    import matplotlib; matplotlib.use("Agg")
-    import matplotlib.pyplot as plt, mplhep as hep
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import mplhep as hep
     fig, ax = plt.subplots(); hep.histplot(np.array([4., 9.]), np.array([0., 10., 20.]), label="MC", ax=ax)
     ax.errorbar([5, 15], [4, 9], yerr=[2, 3], fmt="o", label="Data")
     p = php.convert.from_mpl(fig)

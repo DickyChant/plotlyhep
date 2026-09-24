@@ -10,8 +10,11 @@ plot-edits:<div_id> and re-applied on load, so a deck reviewed in the browser ke
 its adjusted annotations. Under navigator.webdriver (the PDF export) nothing is
 interactive and the stored edits are still applied, so the export shows them."""
 from __future__ import annotations
+
 import json
+
 import plotly.graph_objects as go
+
 from .styles import template_json
 
 PLOTLY_JS = "https://cdn.plot.ly/plotly-2.35.2.min.js"
@@ -61,8 +64,8 @@ def embed(fig: go.Figure, div_id: str, *, editable: bool = True, persist: bool =
                              "legendPosition": True, "axisTitleText": True, "titleText": True}}
     config_frozen = {"displayModeBar": False, "responsive": True, "editable": False, "scrollZoom": False, "doubleClick": False}
     start_edit = "true" if (editable and not frozen) else "false"
-    chip = (f'<div class="plotlyhep-chip"><button class="edit" type="button">edit</button>'
-            f'<button class="reset" type="button" hidden>reset</button></div>') if editable else ""
+    chip = ('<div class="plotlyhep-chip"><button class="edit" type="button">edit</button>'
+            '<button class="reset" type="button" hidden>reset</button></div>') if editable else ""
     persist_js = f"""
       var key = 'plot-edits:' + '{div_id}';
       var saved = {{}}; try {{ saved = JSON.parse(localStorage.getItem(key) || '{{}}'); }} catch (e) {{}}

@@ -90,17 +90,42 @@ column with empty bins drawn at the axis minimum.
 ```bash
 pip install -e ".[test]"          # pins Plotly 5 + kaleido 0.2.1 (bundled Chromium) for the harness; the library itself runs on Plotly 5 or 6
 sudo apt-get install fonts-texgyre  # or any way of giving Chromium the TeX Gyre Heros face mplhep uses
-pytest -q tests
+pytest                            # 77 tests, ~7 s
 ```
+
+## Tests
+
+The suite is laid out like [mplhep's](https://github.com/scikit-hep/mplhep/tree/master/tests)
+and follows the [scikit-hep developer guidelines](https://scikit-hep.org/developer)
+(`pyproject` metadata and classifiers, `[tool.pytest.ini_options]`, ruff, nox,
+pre-commit, a CI matrix over Python 3.10–3.13). Where mplhep uses pytest-mpl,
+plotlyhep has an equivalent marker in `tests/conftest.py`:
+
+```python
+@pytest.mark.image_compare(tolerance=4, remove_text=True)
+def test_histplot_step():
+    fig = php.figure()
+    php.histplot(fig, [h1, h2], bins, label=["a", "b"])
+    return fig          # rendered with kaleido, RMS-compared with tests/baseline/test_histplot_step.png
+```
+
+`remove_text=True` strips annotations, titles, tick labels and the legend before
+rendering, so baselines test geometry rather than the machine's fonts.
+`pytest --regen-baselines` rewrites them after an intentional visual change;
+failures drop actual / expected / diff images under `tests/output/failed/`.
+`CONTRIBUTING.md` lists what each test file covers; the two fidelity harnesses
+(`test_pixel.py` against mplhep, `test_root.py` against ROOT's tutorial images)
+sit alongside.
 
 ## Status
 
 0.1: CMS and ATLAS templates, `histplot` (`step`, `fill`, `errorbar`; `yerr`,
 `stack`, `density`), `hist2dplot`, `exp_text` / `exp_label` with `loc` 0–4,
-axis-label helpers, `from_mpl` / `to_mpl` for the common artist types, the
-pixel-diff harness and CI. Not yet: subplots with shared axes, ratio panels,
-`band`/`bar`/`barstep` histtypes, colorbars in `from_mpl`, log-axis minor ticks
-in `to_mpl`.
+axis-label helpers, ratio panels on matplotlib GridSpec geometry, `from_mpl` /
+`to_mpl` for the common artist types, hover carriers, frozen HTML embeds with an
+edit chip, the pixel-diff harnesses, a mplhep-style test suite and CI. Not yet:
+subplots with shared axes beyond the ratio panel, `band`/`bar`/`barstep`
+histtypes, colorbars in `from_mpl`, log-axis minor ticks in `to_mpl`.
 
 Licensed BSD-3-Clause; style values and helper semantics follow mplhep
 (BSD-3-Clause, © Andrzej Novak and contributors).

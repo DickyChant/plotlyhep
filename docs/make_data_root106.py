@@ -6,8 +6,15 @@ electron scale-factor variation (up/down) used for the uncertainty band.
     python docs/make_data_root106.py [cache_dir]   -> docs/data/hzz4l_root.json
 """
 from __future__ import annotations
-import json, os, sys, urllib.request
-import numpy as np, uproot, awkward as ak
+
+import json
+import os
+import sys
+import urllib.request
+
+import awkward as ak
+import numpy as np
+import uproot
 
 REC = "https://opendata.cern.ch/record/15005/files/"
 LUMI_PB = 10064.0
@@ -71,7 +78,7 @@ def main(cache):
         w = w * sc * xs / sw * LUMI_PB
         h = H(m, w); cat[c] += h; nom += h; up += H(m, (1 + v) * w); dn += H(m, (1 - v) * w); sumw2 += H(m, w * w)
         out["samples"][name] = {"category": c, "xsec_pb": xs, "sumw": sw, "scale": sc, "generator": gen, "description": desc,
-                                "selected_raw": int(len(m)), "yield": h.tolist(), "raw": np.histogram(m, EDGES)[0].tolist()}
+                                "selected_raw": len(m), "yield": h.tolist(), "raw": np.histogram(m, EDGES)[0].tolist()}
         print(f"{name:28s} {len(m):7d} selected, {h.sum():8.3f} expected", flush=True)
     out["categories"] = {k: v.tolist() for k, v in cat.items()}
     out["mc_total"] = {"nominal": nom.tolist(), "up": up.tolist(), "down": dn.tolist(), "sumw2": sumw2.tolist()}
@@ -80,7 +87,7 @@ def main(cache):
         with uproot.open(fetch(d, cache)) as f:
             m, _, _ = run(f["mini"], False)
         md.append(m)
-    m = np.concatenate(md); out["data"] = {"counts": np.histogram(m, EDGES)[0].tolist(), "selected": int(len(m))}
+    m = np.concatenate(md); out["data"] = {"counts": np.histogram(m, EDGES)[0].tolist(), "selected": len(m)}
     print("data", len(m), "selected; MC total", round(nom.sum(), 2))
     os.makedirs(os.path.join(os.path.dirname(__file__), "data"), exist_ok=True)
     json.dump(out, open(os.path.join(os.path.dirname(__file__), "data", "hzz4l_root.json"), "w"), indent=0)

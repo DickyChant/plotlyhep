@@ -1,0 +1,34 @@
+# Contributing
+
+plotlyhep follows the [scikit-hep developer guidelines](https://scikit-hep.org/developer).
+
+```bash
+pip install -e ".[dev]"
+pre-commit install            # ruff on every commit
+pytest                        # the whole suite (needs kaleido 0.2.1, which bundles Chromium)
+pytest --regen-baselines      # after an intentional visual change: regenerate tests/baseline and commit it
+nox -s lint tests             # what CI runs
+```
+
+## How the tests are organised
+
+The suite mirrors [mplhep's](https://github.com/scikit-hep/mplhep/tree/master/tests):
+
+| file | what it covers |
+|---|---|
+| `conftest.py` | the `@pytest.mark.image_compare(tolerance, remove_text)` marker: a Plotly analogue of pytest-mpl (render with kaleido, RMS against `tests/baseline/`) |
+| `helpers.py` | deterministic inputs |
+| `test_basic.py` | `histplot` (step / fill / errorbar / stack / density), `hist2dplot` |
+| `test_styles.py` | templates: values derived from mplhep's rcParams, `use`, `root_template`, `template_json` |
+| `test_labels.py` | `exp_text` / `exp_label` geometry (`loc` 0-4, size ratios, lumi line), axis-label helpers |
+| `test_layouts.py` | `ratio_figure` (GridSpec geometry checked against matplotlib itself), `ratioplot` |
+| `test_convert.py` | `from_mpl` / `to_mpl`, mathtext <-> HTML |
+| `test_html.py` | `embed` (frozen by default, edit chip, page-level template), `script_tag` |
+| `test_inputs.py` | input shapes and error messages |
+| `test_hover.py` | hover content |
+| `test_pixel.py`, `compare.py` | fidelity to mplhep: same figure through both stacks at 1000×1000, ratchet thresholds |
+| `test_root.py`, `compare_root.py` | fidelity to ROOT's tutorial output images for the gallery rebuilds |
+
+`remove_text=True` (the default) strips text before rendering so baselines depend on geometry,
+not on the fonts of the machine — the same idea as pytest-mpl's `remove_text`. Tests that must
+include text carry a larger tolerance.

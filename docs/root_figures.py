@@ -4,9 +4,13 @@
 Geometry, sizes and positions follow the tutorial sources; colours were sampled from the
 reference images. Hover carries the physics on top."""
 from __future__ import annotations
-import json, os
+
+import json
+import os
+
 import numpy as np
 import plotly.graph_objects as go
+
 import plotlyhep as php
 from plotlyhep.styles import ROOT_EM
 

@@ -5,17 +5,66 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "plotlyhep"
 version = "0.1.0"
-description = "mplhep, mirrored for Plotly: experiment styles, labels and histogram helpers, pixel-checked against mplhep"
+description = "mplhep, mirrored for Plotly: experiment styles, labels, histogram and ratio helpers, matplotlib<->Plotly conversion, pixel-checked"
 readme = "README.md"
 license = { text = "BSD-3-Clause" }
 requires-python = ">=3.9"
+authors = [{ name = "Sitian Qian" }]
+keywords = ["hep", "plotly", "mplhep", "histogram", "cms", "atlas"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Visualization",
+]
 dependencies = ["plotly>=5.20", "numpy>=1.22"]
+
+[project.urls]
+Homepage = "https://github.com/DickyChant/plotlyhep"
+Gallery = "https://dickychant.github.io/plotlyhep/"
+"Bug Tracker" = "https://github.com/DickyChant/plotlyhep/issues"
 
 [project.optional-dependencies]
 # The harness pins the renderer: Plotly 5 + kaleido 0.2.1 ships its own Chromium, so the pixel
 # comparison is reproducible on any machine. (Plotly 6 needs kaleido>=1 and a system Chrome.)
-test = ["plotly>=5.20,<6", "kaleido==0.2.1", "matplotlib>=3.8", "mplhep>=1.2", "pillow", "scikit-image", "pytest"]
+test = ["plotly>=5.20,<6", "kaleido==0.2.1", "matplotlib>=3.8", "mplhep>=1.2", "pillow", "scikit-image", "pytest>=7"]
+dev = ["plotlyhep[test]", "ruff", "nox", "pre-commit"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 packages = ["plotlyhep"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = ["-ra", "--strict-markers"]
+testpaths = ["tests"]
+python_files = "test*.py"
+log_level = "INFO"
+filterwarnings = ["ignore::DeprecationWarning:kaleido", "ignore::DeprecationWarning:plotly"]
+
+[tool.ruff]
+line-length = 140
+src = ["src", "tests"]
+show-fixes = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "NPY", "RUF"]
+ignore = [
+  "E501", "E701", "E702", "E731", "E741",       # compact one-liners and short names are the house style
+  "B905", "B023",                               # zip strict; closures in convert.py are called inside their loop
+  "RUF001", "RUF002", "RUF003", "RUF005", "RUF015", "RUF046",
+  "UP007",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E402", "B011"]
+"docs/**" = ["E402", "B007"]

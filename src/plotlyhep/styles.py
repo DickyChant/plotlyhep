@@ -4,9 +4,11 @@ The template is derived from mplhep's own rcParams dictionaries at import time
 when mplhep is installed (so a new mplhep release propagates), otherwise from
 the vendored snapshot below (mplhep 1.3.3)."""
 from __future__ import annotations
+
 import plotly.graph_objects as go
 import plotly.io as pio
-from ._units import pt2px, fontsize_pt, SUBPLOT, DPI
+
+from ._units import DPI, SUBPLOT, fontsize_pt, pt2px
 
 _SNAPSHOT = {
     "CMS": {
@@ -30,7 +32,7 @@ _SNAPSHOT = {
 def _rc(exp: str) -> dict:
     """rcParams-like dict for an experiment: live from mplhep if present."""
     try:
-        import mplhep  # noqa
+        import mplhep
         rc = dict(getattr(mplhep.style, exp))
         cyc = rc.get("axes.prop_cycle")
         if cyc is not None and not isinstance(cyc, list):

@@ -7,10 +7,13 @@ pixel harness can check it against mplhep:
     php.ratioplot(fig, data, mc, bins, den_w2=mc_w2, label="Data / MC")   # bottom panel
 """
 from __future__ import annotations
+
 import numpy as np
 import plotly.graph_objects as go
-from .styles import template, figsize_px
+
 from ._units import SUBPLOT, pt2px
+from .styles import figsize_px, template
+
 
 def gridspec_domains(height_ratios=(3, 1), hspace=0.05, *, top=SUBPLOT["top"], bottom=SUBPLOT["bottom"]):
     """matplotlib GridSpec vertical layout as Plotly domains (fractions of the plot area).

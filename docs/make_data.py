@@ -5,8 +5,15 @@ small JSON of m4l histograms per sample and channel, with the official normalisa
 Writes docs/data/hzz4l.json. The gallery page is built from that file only (no network in CI).
 Selection follows ROOT's df106_HiggsToFourLeptons tutorial."""
 from __future__ import annotations
-import json, os, sys, urllib.request
-import numpy as np, uproot, awkward as ak
+
+import json
+import os
+import sys
+import urllib.request
+
+import awkward as ak
+import numpy as np
+import uproot
 
 REC = "https://opendata.cern.ch/record/15005/files/"
 INFO = "https://raw.githubusercontent.com/atlas-outreach-data-tools/notebooks-collection-opendata/master/13-TeV-examples/uproot_python/infofile.py"
@@ -68,7 +75,7 @@ def main(cache):
             m, ch, w = select(f["mini"], mc=True)
         w = w * scale
         s = {"group": group, "dsid": info["DSID"], "xsec_pb": info["xsec"], "sumw": info["sumw"], "events_generated": info["events"],
-             "generator": gen, "description": desc, "selected_raw": int(len(m)), **hist(m, w),
+             "generator": gen, "description": desc, "selected_raw": len(m), **hist(m, w),
              "by_channel": {c: hist(m, w, ch == v) for c, v in CHANNELS.items()}}
         out["samples"][key] = s; print(f"{key:16s} {len(m):7d} selected, {sum(s['yield']):8.2f} expected", flush=True)
     md, cd = [], []
@@ -77,7 +84,7 @@ def main(cache):
             m, ch, _ = select(f["mini"], mc=False)
         md.append(m); cd.append(ch)
     m, ch = np.concatenate(md), np.concatenate(cd)
-    out["data"] = {"periods": [p for _, p in DATA], "counts": np.histogram(m, EDGES)[0].tolist(), "selected": int(len(m)),
+    out["data"] = {"periods": [p for _, p in DATA], "counts": np.histogram(m, EDGES)[0].tolist(), "selected": len(m),
                    "by_channel": {c: np.histogram(m[ch == v], EDGES)[0].tolist() for c, v in CHANNELS.items()}}
     print("data", len(m), "selected events")
     os.makedirs(os.path.join(os.path.dirname(__file__), "data"), exist_ok=True)

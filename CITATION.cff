@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: plotlyhep
+message: If you use plotlyhep, please cite it and mplhep, whose conventions it mirrors.
+type: software
+authors:
+  - family-names: Qian
+    given-names: Sitian
+repository-code: https://github.com/DickyChant/plotlyhep
+url: https://dickychant.github.io/plotlyhep/
+license: BSD-3-Clause

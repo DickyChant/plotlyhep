@@ -6,7 +6,9 @@ loc 1: exp+text inside top-left on one line; loc 2: text below exp inside;
 loc 3: exp above, text inside; loc 4 (ATLAS): inside, lumi below.
 Inside padding equals the exp font size."""
 from __future__ import annotations
+
 import plotly.graph_objects as go
+
 from ._units import pt2px
 
 SCALE_EXP, SCALE_LUMI = 1.3, 1 / 1.3

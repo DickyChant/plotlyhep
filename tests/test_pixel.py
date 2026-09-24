@@ -1,7 +1,12 @@
 """Ratchet: every case must stay at or under the thresholds in thresholds.json.
 Tighten the numbers whenever the mirror improves; never loosen without a reason in the commit."""
-import json, os, pytest
-from compare import run, CASES
+import json
+import os
+
+import pytest
+
+from compare import CASES, run
+
 TH = json.load(open(os.path.join(os.path.dirname(__file__), "thresholds.json")))
 RES = run()
 

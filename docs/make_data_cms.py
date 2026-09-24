@@ -5,7 +5,12 @@
 
 Both merge into docs/data/dimuon.json under their own key. The gallery reads that file only."""
 from __future__ import annotations
-import json, os, sys, urllib.request
+
+import json
+import os
+import sys
+import urllib.request
+
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -50,10 +55,11 @@ def reduce_2010(cache):
             Q.append(int(row["Q1"]) * int(row["Q2"]))
     E1, E2, P1, P2, Q = map(np.asarray, (E1, E2, P1, P2, Q))
     m2 = (E1 + E2) ** 2 - ((P1 + P2) ** 2).sum(1); m = np.sqrt(np.maximum(m2, 0))
-    return {"description": desc, "sqrt_s_TeV": 7, "n_events": int(len(m)), "os": hist(m, Q < 0), "ss": hist(m, Q > 0)}
+    return {"description": desc, "sqrt_s_TeV": 7, "n_events": len(m), "os": hist(m, Q < 0), "ss": hist(m, Q > 0)}
 
 def reduce_2012(cache):
-    import uproot, awkward as ak
+    import awkward as ak
+    import uproot
     url, name, desc = SRC["2012"]; p = fetch(url, name, cache)
     os_c = np.zeros(len(EDGES) - 1); ss_c = np.zeros(len(EDGES) - 1); n = 0
     for a in uproot.iterate(p + ":Events", ["nMuon", "Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass", "Muon_charge"], step_size="300 MB"):
