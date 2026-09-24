@@ -60,6 +60,9 @@ markdown_extensions:
       base_path: docs/pages
       check_paths: true
 
+hooks:
+  - docs/hooks.py
+
 plugins:
   - search
   - mkdocstrings:
