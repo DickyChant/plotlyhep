@@ -45,6 +45,9 @@ dev = ["plotlyhep[test]", "plotlyhep[docs]", "ruff", "nox", "pre-commit"]
 package-dir = {"" = "src"}
 packages = ["plotlyhep"]
 
+[tool.setuptools.package-data]
+plotlyhep = ["*.json"]   # _root_colors.json, read by plotlyhep.root at import (tests/check_dist.py guards this)
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = ["-ra", "--strict-markers", "--strict-config"]
