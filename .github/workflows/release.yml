@@ -18,6 +18,7 @@ jobs:
           python-version: "3.12"
       - run: pip install build
       - run: python -m build
+      - run: python tests/check_dist.py dist   # never release a wheel that misses package files
       - run: gh release create "$TAG" dist/* --title "$TAG" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}

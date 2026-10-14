@@ -26,7 +26,9 @@ import pytest
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), "src"))
+# the tests import plotlyhep from src/, or with PLOTLYHEP_TEST_INSTALLED=1 the installed package (CI: the built wheel)
+if not os.environ.get("PLOTLYHEP_TEST_INSTALLED"):
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "src"))
 BASELINE = os.path.join(HERE, "baseline")
 FAILED = os.path.join(HERE, "output", "failed")
 
