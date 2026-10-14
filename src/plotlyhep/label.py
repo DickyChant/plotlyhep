@@ -52,10 +52,14 @@ def exp_text(
     loc: int = 0,
     lumi: str | None = None,
     fontsize: float | None = None,
+    italic: bool | tuple[bool, bool, bool] = (False, True, False),
     xref="paper",
     yref="paper",
 ) -> go.Figure:
     """Experiment label in the mplhep style: bold experiment name, italic text, optional lumi line.
+
+    italic is (experiment, text, lumi) as in mplhep's exp_text, or one bool for all three; the default
+    keeps the text italic (e.g. italic=(False, False, False) for an upright "Open Data").
 
     loc follows mplhep: 0 above the axes (name left, lumi right), 1-3 inside the top-left corner
     with the text beside or below the name, 4 the ATLAS layout with the lumi line inside too.
@@ -66,6 +70,7 @@ def exp_text(
     pad = exp_px  # mplhep: max(5 pt, exp font size)
     gap = 0.3 * exp_px  # space between "CMS" and "Preliminary"
     ann = []
+    it_exp, it_txt, it_lumi = (italic,) * 3 if isinstance(italic, bool) else tuple(italic)
 
     def A(txt, x, y, xa, ya, size, bold=False, italic=False, xs=0, ys=0):
         t = txt
@@ -92,35 +97,35 @@ def exp_text(
 
     exp_w = 0.72 * exp_px * len(exp)  # crude advance for appending text to the right
     if loc == 0:
-        A(exp, 0, 1, "left", "bottom", exp_px, bold=True, ys=2)
+        A(exp, 0, 1, "left", "bottom", exp_px, bold=True, italic=it_exp, ys=2)
         if text:
-            A(text, 0, 1, "left", "bottom", txt_px, italic=True, xs=exp_w + gap, ys=2)
+            A(text, 0, 1, "left", "bottom", txt_px, italic=it_txt, xs=exp_w + gap, ys=2)
         if lumi:
-            A(lumi, 1, 1, "right", "bottom", lumi_px, ys=2)
+            A(lumi, 1, 1, "right", "bottom", lumi_px, italic=it_lumi, ys=2)
     elif loc == 1:
-        A(exp, 0, 1, "left", "top", exp_px, bold=True, xs=pad, ys=-pad)
+        A(exp, 0, 1, "left", "top", exp_px, bold=True, italic=it_exp, xs=pad, ys=-pad)
         if text:
-            A(text, 0, 1, "left", "top", txt_px, italic=True, xs=pad + exp_w + gap, ys=-pad - (exp_px - txt_px) * 0.8)
+            A(text, 0, 1, "left", "top", txt_px, italic=it_txt, xs=pad + exp_w + gap, ys=-pad - (exp_px - txt_px) * 0.8)
         if lumi:
-            A(lumi, 1, 1, "right", "bottom", lumi_px, ys=2)
+            A(lumi, 1, 1, "right", "bottom", lumi_px, italic=it_lumi, ys=2)
     elif loc == 2:
-        A(exp, 0, 1, "left", "top", exp_px, bold=True, xs=pad, ys=-pad)
+        A(exp, 0, 1, "left", "top", exp_px, bold=True, italic=it_exp, xs=pad, ys=-pad)
         if text:
-            A(text, 0, 1, "left", "top", txt_px, italic=True, xs=pad, ys=-pad - exp_px * 1.15)
+            A(text, 0, 1, "left", "top", txt_px, italic=it_txt, xs=pad, ys=-pad - exp_px * 1.15)
         if lumi:
-            A(lumi, 1, 1, "right", "bottom", lumi_px, ys=2)
+            A(lumi, 1, 1, "right", "bottom", lumi_px, italic=it_lumi, ys=2)
     elif loc == 3:
-        A(exp, 0, 1, "left", "bottom", exp_px, bold=True, ys=2)
+        A(exp, 0, 1, "left", "bottom", exp_px, bold=True, italic=it_exp, ys=2)
         if text:
-            A(text, 0, 1, "left", "top", txt_px, italic=True, xs=pad, ys=-pad)
+            A(text, 0, 1, "left", "top", txt_px, italic=it_txt, xs=pad, ys=-pad)
         if lumi:
-            A(lumi, 1, 1, "right", "bottom", lumi_px, ys=2)
+            A(lumi, 1, 1, "right", "bottom", lumi_px, italic=it_lumi, ys=2)
     elif loc == 4:
-        A(exp, 0, 1, "left", "top", exp_px, bold=True, xs=pad, ys=-pad)
+        A(exp, 0, 1, "left", "top", exp_px, bold=True, italic=it_exp, xs=pad, ys=-pad)
         if text:
-            A(text, 0, 1, "left", "top", txt_px, italic=True, xs=pad + exp_w + gap, ys=-pad - (exp_px - txt_px) * 0.8)
+            A(text, 0, 1, "left", "top", txt_px, italic=it_txt, xs=pad + exp_w + gap, ys=-pad - (exp_px - txt_px) * 0.8)
         if lumi:
-            A(lumi, 0, 1, "left", "top", lumi_px, xs=pad, ys=-pad - exp_px * 1.15)
+            A(lumi, 0, 1, "left", "top", lumi_px, italic=it_lumi, xs=pad, ys=-pad - exp_px * 1.15)
     else:
         raise ValueError(f"Invalid location: {loc}. Valid options are 0-4.")
     for a in ann:
@@ -128,14 +133,28 @@ def exp_text(
     return fig
 
 
-def exp_label(fig, exp="", text="", *, loc=0, data=False, year=None, lumi=None, lumi_format="{0}", com="13", rlabel=None, fontsize=None):
+def exp_label(
+    fig,
+    exp="",
+    text="",
+    *,
+    loc=0,
+    data=False,
+    year=None,
+    lumi=None,
+    lumi_format="{0}",
+    com="13",
+    rlabel=None,
+    fontsize=None,
+    italic=(False, True, False),
+):
     """exp_text with the lumi line built for you (like mplhep.cms.label): data=False adds "Simulation",
     year/lumi/com/lumi_format become "2018, 59.8 fb⁻¹ (13 TeV)", rlabel replaces the whole right label."""
     if rlabel is None:
         rlabel = _lumi_line(year=year, lumi=lumi, lumi_format=lumi_format, com=com)
     if not data and not text:
         text = "Simulation"
-    return exp_text(fig, exp, text, loc=loc, lumi=rlabel or None, fontsize=fontsize)
+    return exp_text(fig, exp, text, loc=loc, lumi=rlabel or None, fontsize=fontsize, italic=italic)
 
 
 class _Exp:

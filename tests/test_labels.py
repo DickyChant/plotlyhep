@@ -53,6 +53,27 @@ def test_exp_label_simulation_default(fig):
     assert "<i>Simulation</i>" in annotation_texts(fig)
 
 
+@pytest.mark.parametrize("loc", [0, 1, 2, 3, 4])
+def test_exp_text_italic_tuple(fig, loc):
+    exp_text(fig, "SLD", "Open Data", loc=loc, lumi="1996–98", italic=(False, False, False))
+    texts = annotation_texts(fig)
+    assert "<b>SLD</b>" in texts and "Open Data" in texts and "1996–98" in texts
+    assert not any("<i>" in t for t in texts)
+
+
+def test_exp_text_italic_bool_and_mplhep_order(fig):
+    exp_text(fig, "CMS", "Preliminary", lumi="(13.6 TeV)", italic=True)
+    assert {"<i><b>CMS</b></i>", "<i>Preliminary</i>", "<i>(13.6 TeV)</i>"} <= set(annotation_texts(fig))
+    f2 = php.figure()
+    exp_text(f2, "CMS", "Preliminary", lumi="(13.6 TeV)", italic=(False, False, True))  # (exp, text, lumi) as in mplhep
+    assert {"<b>CMS</b>", "Preliminary", "<i>(13.6 TeV)</i>"} <= set(annotation_texts(f2))
+
+
+def test_exp_label_passes_italic(fig):
+    exp_label(fig, "DELPHI", "Open Data", data=True, rlabel="1994", italic=(False, False, False))
+    assert "Open Data" in annotation_texts(fig)
+
+
 def test_exp_label_rlabel_overrides(fig):
     exp_label(fig, "CMS", "Preliminary", data=True, lumi=138, com=13.6, rlabel="my label")
     assert "my label" in annotation_texts(fig) and not any("138" in t for t in annotation_texts(fig))
