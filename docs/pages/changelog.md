@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `exp_text` / `exp_label`: `italic=(experiment, text, lumi)` as in mplhep's `exp_text` (or one bool), so the text can be upright, e.g. "Open Data"; the default `(False, True, False)` keeps today's look.
+
 ## 0.2.0 — 2026-09-24
 
 - `convert.from_root` / `convert.to_root`: ROOT canvases, pads and objects (TH1, TH2, TGraph*, TMultiGraph, THStack, TF1, TLegend, TLatex, TLine/TBox/TArrow, title and stats boxes, divided canvases, log pads) to Plotly and back; uproot-read objects convert without ROOT; TLatex markup to HTML; a pixel test against ROOT's own painter; a PyROOT job in CI.
