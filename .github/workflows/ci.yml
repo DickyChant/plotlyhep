@@ -41,7 +41,10 @@ jobs:
           path: tests/output
   dist:
     # the package as users get it: build the sdist and the wheel (from the sdist), check that both ship
-    # every file of src/plotlyhep, and run the tests against the installed wheel instead of src/
+    # every file of src/plotlyhep, and run the tests against the installed wheel instead of src/, with
+    # ROOT from PyPI so the ROOT converter runs too. The pixel ratchet against ROOT's painter stays in
+    # the `root` job: pip ROOT 6.40.00 draws the reference canvas at mean abs diff 7.601, just above the
+    # 7.6 set with conda-forge ROOT 6.40.04.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,8 +56,8 @@ jobs:
       - run: pip install build
       - run: python -m build
       - run: python tests/check_dist.py dist
-      - run: pip install "$(ls dist/*.whl)[test]"
-      - run: pytest
+      - run: pip install "$(ls dist/*.whl)[test]" ROOT
+      - run: pytest --deselect tests/test_root_convert.py::test_pixel_against_root_rendering
         env:
           PLOTLYHEP_TEST_INSTALLED: "1"
   root:
