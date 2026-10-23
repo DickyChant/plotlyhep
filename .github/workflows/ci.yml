@@ -50,7 +50,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.9"
-      - run: pip install -e . "plotly>=5.20,<6" "kaleido==0.2.1" "matplotlib>=3.8" pillow scikit-image "pytest>=7"
+      - run: pip install -e . "plotly>=5.20,<6" "kaleido==0.2.1" "matplotlib>=3.8" mplhep-data pillow scikit-image "pytest>=7"   # mplhep-data: the TeX Gyre Heros files conftest pins fontconfig to
       - run: pytest --ignore=tests/test_convert.py --ignore=tests/test_root_convert.py --ignore=tests/test_pixel.py --deselect tests/test_hover.py::test_from_mpl_hover
   dist:
     # the package as users get it: build the sdist and the wheel (from the sdist), check that both ship
