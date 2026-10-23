@@ -83,7 +83,7 @@ show-fixes = true
 extend-exclude = ["*.md", "site"]     # ruff >= 0.14 formats code blocks in Markdown; the docs keep their aligned comments
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "NPY", "RUF"]
+select = ["E", "F", "W", "I", "UP", "B", "NPY", "RUF", "FA"]   # FA: PEP 604/585 annotations need the __future__ import on 3.9
 ignore = [
   "E501", "E701", "E702", "E731", "E741",       # compact one-liners and short names are the house style
   "B905", "B023",                               # zip strict; closures in convert.py are called inside their loop
