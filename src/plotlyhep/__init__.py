@@ -8,6 +8,8 @@ php.cms.label(fig, "Preliminary", lumi=138, com=13.6, loc=0)
 php.set_xlabel(fig, "m<sub>jj</sub> [GeV]"); php.set_ylabel(fig, "Events")
 """
 
+from __future__ import annotations
+
 import plotly.graph_objects as go
 import plotly.io as pio
 
