@@ -58,3 +58,19 @@ def test_embed_download_menu():
     assert 'class="plotlyhep-save"' not in embed(_fig(), "p", download=False)
     assert 'class="plotlyhep-chip"' in embed(_fig(), "p", editable=False)  # the save chip stays without edit
     assert 'class="plotlyhep-chip"' not in embed(_fig(), "p", editable=False, download=False)
+
+
+def test_embed_fit():
+    h = embed(_fig(), "p", fit=True)
+    assert 'class="plotlyhep-wrap plotlyhep-fit"' in h and '<div class="plotlyhep-canvas"><div id="p"' in h
+    assert "'scale(' + s + ')'" in h and "Math.min(1, wrap.clientWidth / fl.width)" in h  # scales down, never up
+    assert "ResizeObserver" in h  # follows the container
+    assert ".plotlyhep-fit .plotlyhep-canvas" in SLIDE_CSS
+    layout_js = h.split("var data")[1].split("var configEdit")[0]
+    assert '"width": 1000' in layout_js and '"height": 1000' in layout_js  # php.figure's size survives the template drop
+
+
+def test_embed_fit_off_by_default():
+    h = embed(_fig(), "p")
+    assert "plotlyhep-canvas" not in h and "plotlyhep-fit" not in h and "ResizeObserver" not in h
+    assert 'class="plotlyhep-wrap" style="width:100%;"><div id="p"' in h  # same markup as before

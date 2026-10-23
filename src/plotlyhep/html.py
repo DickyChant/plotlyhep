@@ -48,6 +48,9 @@ SLIDE_CSS = """<style>
 .plotlyhep-wrap.editing .plotlyhep-chip button.edit { background: #1a4480; color: #fff; border-color: #1a4480; }
 .plotlyhep-chip .plotlyhep-save { display: inline-flex; gap: 4px; }
 .plotlyhep-chip .plotlyhep-save[hidden] { display: none; }
+/* fit=True: the figure keeps its own size and the whole canvas is scaled down to the container */
+.plotlyhep-wrap.plotlyhep-fit { display: block; overflow: hidden; }
+.plotlyhep-fit .plotlyhep-canvas { transform-origin: 0 0; }
 </style>"""
 
 
@@ -62,6 +65,7 @@ def embed(
     inherit_template: bool = True,
     frozen: bool = True,
     download: bool = True,
+    fit: bool = False,
 ) -> str:
     """HTML fragment: a div plus the script that draws the figure into it.
 
@@ -74,8 +78,17 @@ def embed(
     PLOTLYHEP_TEMPLATE (from script_tag) applies — one theme for the whole deck.
     download=True adds a "save" chip: PNG (3x, via Plotly.downloadImage), SVG, and
     PDF (the figure's SVG alone on a page of its own size, through the browser's print
-    dialog: vector, the page's real fonts, every glyph). download=False removes it."""
+    dialog: vector, the page's real fonts, every glyph). download=False removes it.
+    fit=True: for a figure with its own width/height (the experiment figure sizes), draw it at that
+    size and scale the whole canvas down to the container width with a CSS transform when the
+    container is narrower (a phone, a side column), so fonts, ticks and labels keep their proportions
+    instead of overflowing; it never scales up, and follows container resizes. Exports keep the full size."""
     j = fig.to_plotly_json()
+    if fit:  # the size to scale from: the figure's own, or its template's (php.figure keeps it there)
+        tl = j["layout"].get("template", {}).get("layout", {})
+        for k in ("width", "height"):
+            if j["layout"].get(k) is None and tl.get(k) is not None:
+                j["layout"][k] = tl[k]
     if inherit_template:
         j["layout"].pop("template", None)
     data = json.dumps(j["data"], cls=_NumpyEncoder)
@@ -118,10 +131,28 @@ def embed(
         else """
       var saved = {}; function remember(e) { Object.assign(saved, e); } function forget() { saved = {}; }"""
     )
-    return f"""<div class="plotlyhep-wrap" style="width:{width};"><div id="{div_id}" style="width:100%; height:{height};"></div>{chip}</div>
+    plot_div = f'<div id="{div_id}" style="width:100%; height:{height};"></div>'
+    if fit:
+        plot_div = f'<div class="plotlyhep-canvas">{plot_div}</div>'
+    fit_js = (
+        """
+  var canvas = wrap.querySelector('.plotlyhep-canvas');
+  function fitCanvas() {
+    var fl = gd._fullLayout; if (!fl || !fl.width) return;
+    var s = Math.min(1, wrap.clientWidth / fl.width);
+    canvas.style.width = fl.width + 'px';
+    canvas.style.transform = s < 1 ? 'scale(' + s + ')' : '';
+    wrap.style.height = Math.ceil(fl.height * s) + 'px';
+  }
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(wrap); else window.addEventListener('resize', fitCanvas);"""
+        if fit
+        else """
+  function fitCanvas() {}"""
+    )
+    return f"""<div class="plotlyhep-wrap{" plotlyhep-fit" if fit else ""}" style="width:{width};">{plot_div}{chip}</div>
 <script>
 (function () {{
-  var gd = document.getElementById('{div_id}'), wrap = gd.parentNode;
+  var gd = document.getElementById('{div_id}'), wrap = gd.closest('.plotlyhep-wrap');
   var data = {data}, layout = {layout};
   var configEdit = {json.dumps(config_edit)}, configFrozen = {json.dumps(config_frozen)};
   if (window.PLOTLYHEP_TEMPLATE && !layout.template) layout.template = window.PLOTLYHEP_TEMPLATE;
@@ -129,6 +160,7 @@ def embed(
   if (navigator.webdriver) {{ editing = false; configFrozen.staticPlot = true; }}     // PDF export: a picture
 {persist_js}
   var chip = wrap.querySelector('.plotlyhep-chip');
+{fit_js}
   function paint() {{
     var frozenLayout = editing ? layout : Object.assign({{}}, layout, {{dragmode: false}});
     return Plotly.react(gd, data, frozenLayout, editing ? configEdit : configFrozen).then(function () {{
@@ -136,6 +168,7 @@ def embed(
       wrap.classList.toggle('editing', editing);
       var eb = chip && chip.querySelector('.edit'), rb = chip && chip.querySelector('.reset');
       if (eb) {{ eb.textContent = editing ? 'done' : 'edit'; rb.hidden = !editing; }}
+      fitCanvas();
     }});
   }}
   paint().then(function () {{
