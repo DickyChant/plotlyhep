@@ -34,6 +34,12 @@ slide = html.embed(fig, "fig-mjj")     # a div and the script that draws into it
 `width` and `height` are CSS lengths for the container (`"100%"` and `"auto"` by default,
 `auto` keeps the figure's own aspect ratio).
 
+`fit=True` is for figures that carry their own size, such as the experiment figure sizes from
+`php.figure("CMS")`, on pages narrower than the figure: a phone, or a side column. The
+figure is drawn at its own size and the whole canvas is scaled down to the container with a
+CSS transform, so fonts, ticks and the experiment label keep their proportions instead of
+overflowing. It never scales up, follows container resizes, and exports keep the full size.
+
 !!! tip "In the frontend-slides skill"
     The [frontend-slides](https://github.com/DickyChant/frontend-slides) deck engine carries
     plotlyhep as a submodule and documents this workflow under "Plots for slides".
